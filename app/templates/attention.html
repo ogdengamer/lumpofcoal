@@ -3,7 +3,8 @@
 {% block content %}
   <a class="back" href="/">← Gifts</a>
   <h1>Needs attention</h1>
-  {% if saved %}<p class="toast" role="status">Saved {{ saved.title or "gift" }}.</p>{% endif %}
+  {% if saved %}<p class="toast" role="status">Saved {{ saved.title or "gift" }}.</p>
+  {% elif deleted %}<p class="toast" role="status">Gift deleted.</p>{% endif %}
 
   {% if not gift_issues and not person_issues %}
     <p class="empty">Nothing to fix. Everything has the details it needs.</p>

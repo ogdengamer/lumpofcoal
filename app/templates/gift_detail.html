@@ -11,6 +11,7 @@
 
   <form method="post" action="/gifts/{{ gift.id }}/delete" class="delete-form"
         data-confirm="Delete this gift? This can't be undone.">
+    <input type="hidden" name="back" value="{{ back }}">
     <button type="submit" class="danger">Delete gift</button>
   </form>
 {% endblock %}

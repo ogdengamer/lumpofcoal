@@ -269,13 +269,17 @@ async def update_gift(request: Request, gift_id: int, session: Session = Depends
 
 
 @router.post("/gifts/{gift_id}/delete")
-def delete_gift(gift_id: int, session: Session = Depends(db_session),
-                repo: GiftRepo = Depends(gift_repo)):
+async def delete_gift(request: Request, gift_id: int, session: Session = Depends(db_session),
+                      repo: GiftRepo = Depends(gift_repo)):
+    back = safe_back((await request.form()).get("back"))
     # Its photos become unattached and are cleaned up by delete_orphan_photos.
     if not repo.delete(gift_id):
         raise HTTPException(404)
     session.commit()
-    return RedirectResponse("/?deleted=1", status_code=303)
+    # Back to the list it was opened from, like saving does.
+    if back == ATTENTION:
+        return RedirectResponse("/attention?deleted=1", status_code=303)
+    return RedirectResponse(f"/?{back + '&' if back else ''}deleted=1", status_code=303)
 
 
 # --- share target ------------------------------------------------------------------------
