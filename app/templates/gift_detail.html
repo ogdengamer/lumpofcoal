@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ gift.title or "Untitled gift" }}{% endblock %}
+{% block content %}
+  <a class="back" href="{{ back_href }}">← {{ "Needs attention" if back == "attention" else "Gifts" }}</a>
+
+  {% with fid="edit", action="/gifts/" ~ gift.id,
+          submit_label="Save changes", form=edit_form, standalone=True,
+          existing_photos=gift.photos %}{% include "_gift_form.html" %}{% endwith %}
+
+  <p class="meta muted">Added by {{ gift.created_by.name }} on {{ gift.created_at.strftime("%b %-d, %Y") }}</p>
+
+  <form method="post" action="/gifts/{{ gift.id }}/delete" class="delete-form"
+        data-confirm="Delete this gift? This can't be undone.">
+    <button type="submit" class="danger">Delete gift</button>
+  </form>
+{% endblock %}

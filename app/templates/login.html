@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+  <form class="sign-in" method="post" action="/login">
+    <h1>Sign in</h1>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    {% if notice %}<p class="toast" role="status">{{ notice }}</p>{% endif %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label class="field">Email
+      <input name="email" type="email" value="{{ email }}" autocomplete="username" required autofocus>
+    </label>
+    <label class="field">Password
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="save">Sign in</button>
+    <p class="muted small-text">Forgot your password? Ask someone else who uses the app for a
+      new sign-in link (Settings → App users).</p>
+  </form>
+{% endblock %}

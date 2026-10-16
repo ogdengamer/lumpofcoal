@@ -1,0 +1,28 @@
+{% extends "settings_base.html" %}
+{% macro member_chips(members=[]) -%}
+  {% set member_ids = members|map(attribute="id")|list %}
+  <div class="chip-row">
+    {% for p in people if p.active or p.id in member_ids %}
+      <label class="chip"><input type="checkbox" name="members" value="{{ p.id }}" {% if p.id in member_ids %}checked{% endif %}><span>{{ p.name }}</span></label>
+    {% endfor %}
+  </div>
+{%- endmacro %}
+{% block settings %}
+  <p class="muted intro">Changing who's in a group changes how its past gifts split per person.</p>
+  {% for g in groups %}
+    <form class="settings-section group-card" method="post" action="/settings/groups/{{ g.id }}" data-autosave>
+      <input class="group-title" name="name" value="{{ g.name }}" aria-label="Group name" required autocomplete="off">
+      {{ member_chips(g.members) }}
+      <div class="row-actions">
+        <noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span>
+        <button type="submit" class="link" formaction="/settings/groups/{{ g.id }}/delete"
+                data-confirm="Delete the {{ g.name }} group?">Delete</button>
+      </div>
+    </form>
+  {% endfor %}
+  <form class="settings-section group-card add-row" method="post" action="/settings/groups">
+    <input class="group-title" name="name" placeholder="New group name" aria-label="New group name" required autocomplete="off">
+    {{ member_chips() }}
+    <div class="row-actions"><button type="submit" class="btn">Add group</button></div>
+  </form>
+{% endblock %}

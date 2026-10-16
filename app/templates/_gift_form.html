@@ -1,0 +1,129 @@
+{#- The gift form, for adding (in the + dialog or /gifts/new) and editing.
+    Set via {% with %}: fid (id prefix, unique per page), action,
+    submit_label, form (values), error, photo_id, standalone,
+    existing_photos, back. -#}
+{% macro chip_input(chip) -%}
+  <label class="chip">
+    <input type="checkbox" name="recipients" value="{{ chip.key }}"
+           data-kind="{{ chip.kind }}" data-id="{{ chip.id }}" data-label="{{ chip.label }}"
+           {% if chip.key in (form.recipients or []) %}checked{% endif %}>
+    <span>{{ chip.label }}</span>
+  </label>
+{%- endmacro %}
+<form class="gift-form" id="{{ fid }}-form" method="post" action="{{ action }}" data-gift-form
+      data-hints='{{ hints_json }}'>
+  <div class="form-head">
+    {%- if fid == "edit" %}
+      {#- Editing: the title is the heading; tap it to type one. -#}
+      <input class="title-input" name="title" value="{{ form.title or '' }}" placeholder="Untitled gift"
+             autocomplete="off" aria-label="Title">
+    {%- else %}
+      <h2>New gift</h2>
+    {%- endif %}
+    {% if not standalone %}<button type="button" class="link" data-close>Cancel</button>{% endif %}
+  </div>
+
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if back %}<input type="hidden" name="back" value="{{ back }}">{% endif %}
+
+  {% if existing_photos %}
+    <div class="existing-photos">
+      {% for photo in existing_photos %}
+        <figure>
+          <a href="/photos/{{ photo.id }}/full" target="_blank" rel="noopener">
+            <img src="/photos/{{ photo.id }}/full" alt="Photo {{ loop.index }} of {{ form.title or 'this gift' }}">
+          </a>
+          <label class="remove-photo"><input type="checkbox" name="remove_photo" value="{{ photo.id }}"> Remove</label>
+        </figure>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="photo-slot">
+    <img data-preview alt="" {% if photo_id %}src="/photos/{{ photo_id }}/thumb"{% else %}hidden{% endif %}>
+    <div class="photo-buttons">
+      <label class="btn" for="{{ fid }}-camera">{{ "Add photo" if existing_photos else "Camera" }}</label>
+      <label class="btn" for="{{ fid }}-gallery">Gallery</label>
+    </div>
+    <p class="photo-status" data-photo-status aria-live="polite"></p>
+    <input id="{{ fid }}-camera" class="photo-input" type="file" accept="image/*" capture="environment" hidden>
+    <input id="{{ fid }}-gallery" class="photo-input" type="file" accept="image/*,.heic,.heif" hidden>
+    <input type="hidden" name="photo_id" value="{{ photo_id or '' }}" data-photo-id>
+  </div>
+
+  {% if fid != "edit" %}
+    {#- Adding: you've just taken the photo, so naming it comes next. -#}
+    <label class="field">Title
+      <input name="title" value="{{ form.title or '' }}" autocomplete="off">
+    </label>
+  {% endif %}
+
+  <fieldset class="chips" data-chips>
+    <legend>For</legend>
+    {#- Everyone shows without JS; with it, the rest fold behind "…" unless one is picked. -#}
+    {% set rest_selected = chips_rest|selectattr("key", "in", form.recipients or [])|list %}
+    <div class="chip-row" {% if chips_rest and not rest_selected %}data-fold-rest{% endif %}>
+      {%- for chip in chips_top %}{{ chip_input(chip) }}{% endfor -%}
+      {%- for chip in chips_rest %}<span class="rest-chip">{{ chip_input(chip) }}</span>{% endfor -%}
+      <button type="button" class="chip-more" data-more-chips aria-label="Show everyone" hidden>…</button>
+      {#- Someone not in the app yet: they're created when the gift is saved. -#}
+      {% set new_picked = "new" in (form.recipients or []) and form.new_person %}
+      <label class="chip" data-new-chip {% if not new_picked %}hidden{% endif %}>
+        <input type="checkbox" name="recipients" value="new" data-kind="new" data-label="{{ form.new_person or '' }}"
+               {% if new_picked %}checked{% endif %}>
+        <span data-new-label>{{ form.new_person or '' }}</span>
+      </label>
+      <button type="button" class="chip-more" data-new-person {% if new_picked %}hidden{% endif %}>+ New</button>
+    </div>
+    <div class="new-person" data-new-person-box hidden>
+      <input name="new_person" value="{{ form.new_person or '' }}" placeholder="Their name" autocomplete="off"
+             maxlength="100" aria-label="New person's name" enterkeyhint="done" data-new-name>
+      <button type="button" class="btn" data-new-add>Add</button>
+    </div>
+    <p class="hint" data-group-hint hidden>
+      <span data-hint-text></span>
+      <button type="button" class="link" data-use-group>Count it for the group</button>
+    </p>
+    <label class="group-name" data-group-name hidden>
+      Save these people as a group <span class="muted">(optional)</span>
+      <input name="group_name" value="{{ form.group_name or '' }}" placeholder="e.g. The Twins"
+             autocomplete="off">
+    </label>
+  </fieldset>
+
+  <label class="field">Cost
+    <span class="price">
+      <span class="price-sign" aria-hidden="true">$</span>
+      <input name="price" inputmode="decimal" autocomplete="off" placeholder="0"
+             value="{{ form.price or '' }}" enterkeyhint="done" data-price>
+    </span>
+  </label>
+
+  <label class="field">Occasion
+    <select name="occasion_id" data-occasion>
+      {% for o in occasions %}
+        <option value="{{ o.id }}" data-type="{{ o.type_id }}"
+                {% if o.id|string == form.occasion_id|string %}selected{% endif %}>{{ o.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <div class="field">
+    <label for="{{ fid }}-source">Bought at / trip</label>
+    <input id="{{ fid }}-source" name="source" value="{{ form.source or '' }}" autocomplete="off"
+           data-source placeholder="e.g. Craft fair">
+    {#- Past sources as tap-to-fill chips (not a <datalist>: Android draws that over the label). -#}
+    <div class="chip-row source-chips" data-source-chips hidden>
+      {%- for s in sources %}<button type="button" class="source-chip" data-value="{{ s }}">{{ s }}</button>{% endfor -%}
+    </div>
+  </div>
+  <label class="field">Status
+    <select name="status">
+      {% for s in statuses %}
+        <option value="{{ s }}" {% if s == form.status %}selected{% endif %}>{{ s|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">Notes <textarea name="notes" rows="2">{{ form.notes or '' }}</textarea></label>
+
+  <button class="save" type="submit" data-save>{{ submit_label }}</button>
+</form>

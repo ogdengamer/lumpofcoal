@@ -1,0 +1,33 @@
+{% extends "settings_base.html" %}
+{% macro type_inputs(t=None) -%}
+  <input name="name" value="{{ t.name if t else '' }}" placeholder="New occasion, e.g. Anniversary"
+         aria-label="Occasion name" required autocomplete="off">
+  <select name="date_rule" aria-label="When it is" data-date-rule>
+    <option value="fixed" {% if t and t.date_rule == "fixed" %}selected{% endif %}>Same date every year</option>
+    <option value="easter" {% if t and t.date_rule == "easter" %}selected{% endif %}>Easter Sunday</option>
+    {% if t and t.date_rule == "birthday" %}<option value="birthday" selected>Each person's birthday</option>{% endif %}
+    <option value="none" {% if not t or t.date_rule == "none" %}selected{% endif %}>No set date</option>
+  </select>
+  <span class="birthday" data-fixed-date data-pair="required">
+    <select name="month" aria-label="Month">
+      <option value="">Month</option>
+      {% for m in months %}<option value="{{ loop.index }}" {% if t and t.month == loop.index %}selected{% endif %}>{{ m[:3] }}</option>{% endfor %}
+    </select>
+    <input name="day" inputmode="numeric" placeholder="Day" aria-label="Day" value="{{ t.day if t and t.day else '' }}" autocomplete="off">
+  </span>
+{%- endmacro %}
+{% block settings %}
+  <p class="muted intro">Each occasion gets a "Christmas 2026"-style entry for this year and next, automatically.</p>
+  <section class="settings-section">
+    {% for t in occasion_types %}
+      <form class="settings-row occasion-row" method="post" action="/settings/occasions/{{ t.id }}" data-autosave>
+        {{ type_inputs(t) }}
+        <span class="row-actions"><noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span></span>
+      </form>
+    {% endfor %}
+    <form class="settings-row occasion-row add-row" method="post" action="/settings/occasions">
+      {{ type_inputs() }}
+      <span class="row-actions"><button type="submit" class="btn">Add</button></span>
+    </form>
+  </section>
+{% endblock %}

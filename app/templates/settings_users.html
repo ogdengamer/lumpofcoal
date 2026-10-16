@@ -1,0 +1,85 @@
+{% extends "settings_base.html" %}
+{% block settings %}
+  {% if invite_for %}
+    <section class="settings-section toast" role="status">
+      <h2>{{ "Sign-in link for " ~ invite_for.name }}</h2>
+      <p class="intro">Send this to {{ invite_for.name }} however you like (a text is fine). It works
+        once, for 7 days, and lets them choose a password.
+        {% if not invite_fresh %}Any earlier link for them has stopped working.{% endif %}
+        It's only shown now, so copy it before you leave this page.</p>
+      <div class="invite-link">
+        <input id="invite-link" value="{{ invite_link }}" readonly aria-label="Sign-in link" onfocus="this.select()">
+        <button type="button" class="btn" data-copy="#invite-link">Copy</button>
+      </div>
+    </section>
+  {% endif %}
+  {% if cf_added %}
+    <p class="toast" role="status">{{ cf_added.name }} can now use the app. Also add
+      <strong>{{ cf_added.login_email }}</strong> to your Cloudflare Access policy, or Access
+      won't let them in.</p>
+  {% endif %}
+
+  <section class="settings-section">
+    <h2>App users</h2>
+    <p class="muted intro">People who can sign in. Each one sees every gift <em>except</em> gifts for
+      them (or for a group they're in), and every budget except their own.</p>
+    {% for u in users %}
+      <div class="settings-row">
+        <span class="row-label">{{ u.name }}</span>
+        <span class="login-state muted small-text">
+          {{ u.login_email }}
+          {% if password_mode %}
+            · {% if pending[u.id] %}link sent, good until {{ pending[u.id].expires_at.strftime("%b %-d") }}
+              {% elif u.password_hash %}signed up{% else %}needs a sign-in link{% endif %}
+          {% endif %}
+          {% if u.id == viewer_id %}· you{% endif %}
+        </span>
+        {% if u.id != viewer_id %}
+          {% if password_mode %}
+            <form method="post" action="/settings/users/{{ u.id }}/invite">
+              <button type="submit" class="btn">{{ "New sign-in link" if u.password_hash else "Sign-in link" }}</button>
+            </form>
+          {% endif %}
+          <form method="post" action="/settings/users/{{ u.id }}/remove">
+            <button type="submit" class="link"
+                    data-confirm="Remove {{ u.name }}'s login? They'll be signed out everywhere. Their gifts stay.">Remove login</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="settings-section">
+    <h2>Give someone a login</h2>
+    {% if candidates %}
+      <p class="muted intro">They'll see every gift that isn't for them, including ones other people
+        have added for the rest of the family. {% if password_mode %}You'll get a link to send them.{% endif %}</p>
+      <form class="settings-row add-row" method="post" action="/settings/users">
+        <select name="person_id" aria-label="Person" required>
+          <option value="">Who?</option>
+          {% for p in candidates %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+        <input name="email" type="email" placeholder="Their email" aria-label="Their email" required autocomplete="off">
+        <button type="submit" class="btn">Give login</button>
+      </form>
+    {% else %}
+      <p class="muted intro">Add the person on the People tab first.</p>
+    {% endif %}
+  </section>
+
+  {% if password_mode %}
+    <section class="settings-section">
+      <h2>Your password</h2>
+      <form class="settings-row" method="post" action="/settings/password">
+        <input type="email" value="{{ request.state.user.email }}" autocomplete="username" hidden readonly>
+        <input name="current" type="password" placeholder="Current password" aria-label="Current password" autocomplete="current-password" required>
+        <input name="password" type="password" placeholder="New password" aria-label="New password" autocomplete="new-password" minlength="8" required>
+        <input name="again" type="password" placeholder="New password again" aria-label="New password again" autocomplete="new-password" minlength="8" required>
+        <button type="submit" class="btn">Change password</button>
+      </form>
+      <form method="post" action="/logout">
+        <button type="submit" class="btn">Sign out</button>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

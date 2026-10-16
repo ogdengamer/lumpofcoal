@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_gift_card.html" import gift_card %}
+{% block content %}
+  {% if saved %}
+    <p class="toast" role="status">
+      Saved {{ saved.title or "gift" }}{% if saved.recipients %} for {{ saved.recipients|map(attribute="name")|join(", ") }}{% endif %}.
+      {% if not edited %}<label class="link" for="fab-camera">Add another</label>{% endif %}
+    </p>
+  {% elif deleted %}
+    <p class="toast" role="status">Gift deleted.</p>
+  {% endif %}
+
+  {% if attention_count %}
+    <a class="attention-banner" href="/attention">
+      {{ attention_count }} thing{{ "" if attention_count == 1 else "s" }} need{{ "s" if attention_count == 1 else "" }} attention →
+    </a>
+  {% endif %}
+
+  <nav class="quick-filters" aria-label="Quick filters">
+    <a href="/" class="qf {% if not filters.active %}on{% endif %}">All</a>
+    {% for sf in saved_filters %}
+      <span class="qf-saved {% if sf.query == query %}on{% endif %}">
+        <a href="/?{{ sf.query }}" class="qf {% if sf.query == query %}on{% endif %}">{{ sf.name }}</a>
+        <form method="post" action="/filters/{{ sf.id }}/delete" data-confirm="Remove the “{{ sf.name }}” quick filter? (Your gifts aren't affected.)">
+          <button type="submit" class="qf-x" aria-label="Remove quick filter {{ sf.name }}" title="Remove quick filter">×</button>
+        </form>
+      </span>
+    {% endfor %}
+  </nav>
+
+  <details class="filters" {% if filters.active and not (saved_filters|selectattr("query", "eq", query)|list) and query != "needs=details" %}open{% endif %}>
+    <summary>Filter &amp; search</summary>
+    <form method="get" action="/" class="filter-form" data-auto-submit>
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Search titles, notes, sources" enterkeyhint="search">
+      <div class="filter-grid">
+        <label>For
+          <select name="recipient"><option value="">Anyone</option>
+            {% for p in options.people %}<option value="{{ p.id }}" {% if filters.recipient == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+          </select></label>
+        <label>Group
+          <select name="group"><option value="">Any</option>
+            {% for g in options.groups %}<option value="{{ g.id }}" {% if filters.group == g.id %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
+          </select></label>
+        <label>Relation
+          <select name="relation"><option value="">Any</option>
+            {% for r in options.relations %}<option value="{{ r.id }}" {% if filters.relation == r.id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+          </select></label>
+        <label>Occasion
+          <select name="occasion"><option value="">Any</option>
+            {% for o in options.occasions %}<option value="{{ o.id }}" {% if filters.occasion == o.id %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+          </select></label>
+        <label>Status
+          <select name="status"><option value="">Any</option>
+            <option value="not_given" {% if filters.status == "not_given" %}selected{% endif %}>Not given yet</option>
+            {% for s in options.statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
+          </select></label>
+        <label>Source
+          <select name="source"><option value="">Any</option>
+            {% for s in filter_sources %}<option value="{{ s }}" {% if filters.source == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select></label>
+      </div>
+      {% if filters.needs %}<input type="hidden" name="needs" value="details">{% endif %}
+      <noscript><button type="submit">Apply</button></noscript>
+    </form>
+    {% if filters.active %}
+      <div class="filter-actions">
+        <a href="/" class="link">Clear filters</a>
+        {% if not (saved_filters|selectattr("query", "eq", query)|list) %}
+          <form method="post" action="/filters" class="save-filter">
+            <input type="hidden" name="query" value="{{ query }}">
+            <input name="name" placeholder="Name this view" required maxlength="60" aria-label="Name for this filter">
+            <button type="submit" class="btn">Save as quick filter</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </details>
+
+  <p class="summary">
+    {{ gifts|length }} gift{{ "" if gifts|length == 1 else "s" }}{% if total_cents %} · {{ total_cents|price }}{% endif %}
+  </p>
+
+  {% if gifts %}
+    <ul class="cards">
+      {% for gift in gifts %}
+        <li>
+          {{ gift_card(gift, query) }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif filters.active %}
+    <p class="empty">No gifts match. <a href="/" class="link">Clear filters</a></p>
+  {% else %}
+    <p class="empty">No gifts yet. Tap <strong>+</strong> to photograph one.</p>
+  {% endif %}
+{% endblock %}

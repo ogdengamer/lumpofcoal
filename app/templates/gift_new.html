@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}New gift{% endblock %}
+{% block content %}
+  {% with fid="add", action="/gifts", submit_label="Save gift",
+          form=add_form, standalone=True,
+          existing_photos=[], back="" %}{% include "_gift_form.html" %}{% endwith %}
+{% endblock %}

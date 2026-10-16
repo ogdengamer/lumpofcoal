@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Choose a password{% endblock %}
+{% block content %}
+  {% if person %}
+    <form class="sign-in" method="post">
+      <h1>Hi {{ person.name }}</h1>
+      <p class="muted">Choose a password for <strong>{{ person.login_email }}</strong>. You'll stay
+        signed in on this device.</p>
+      {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+      <input type="email" value="{{ person.login_email }}" autocomplete="username" hidden readonly>
+      <label class="field">Password
+        <input name="password" type="password" autocomplete="new-password" minlength="8" required autofocus>
+      </label>
+      <label class="field">Again
+        <input name="again" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <button type="submit" class="save">Save and sign in</button>
+    </form>
+  {% else %}
+    <div class="sign-in">
+      <h1>This link doesn't work any more</h1>
+      <p class="muted">It has expired or was already used. Ask whoever sent it for a new one.</p>
+      <p><a href="/login">Sign in</a></p>
+    </div>
+  {% endif %}
+{% endblock %}

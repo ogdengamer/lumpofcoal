@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Needs attention{% endblock %}
+{% block content %}
+  <a class="back" href="/">← Gifts</a>
+  <h1>Needs attention</h1>
+  {% if saved %}<p class="toast" role="status">Saved {{ saved.title or "gift" }}.</p>{% endif %}
+
+  {% if not gift_issues and not person_issues %}
+    <p class="empty">Nothing to fix. Everything has the details it needs.</p>
+  {% endif %}
+
+  {% if gift_issues %}
+    <h2 class="bsection">Gifts</h2>
+    <ul class="issues">
+      {% for issue in gift_issues %}
+        {% set gift = issue.item %}
+        <li>
+          <a class="issue" href="/gifts/{{ gift.id }}?back=attention">
+            {% if gift.photos %}<img src="/photos/{{ gift.photos[0].id }}/thumb" alt="" loading="lazy">{% else %}<span class="no-photo" aria-hidden="true"></span>{% endif %}
+            <span class="issue-text">
+              <strong>{{ gift.title or "Untitled gift" }}</strong>
+              <span class="muted">{{ gift.recipients|map(attribute="name")|join(", ") }}{% if gift.cost_cents is not none %} · {{ gift.cost_cents|price }}{% endif %}</span>
+              <span class="missing">Needs {{ issue.missing|join(", ") }}</span>
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if person_issues %}
+    <h2 class="bsection">People</h2>
+    <ul class="issues">
+      {% for issue in person_issues %}
+        <li>
+          <a class="issue" href="/settings/people#person-{{ issue.item.id }}">
+            <span class="issue-text">
+              <strong>{{ issue.item.name }}</strong>
+              <span class="missing">Needs {{ issue.missing|join(" and ") }}</span>
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,13 @@
+{#- One gift as a card: photo, status, title, who and cost. -#}
+{% macro gift_card(gift, back="") -%}
+  <a href="/gifts/{{ gift.id }}{% if back %}?back={{ back|urlencode }}{% endif %}" class="card">
+    {% if gift.photos %}
+      <img src="/photos/{{ gift.photos[0].id }}/thumb" alt="" loading="lazy">
+    {% else %}
+      <span class="no-photo" aria-hidden="true"></span>
+    {% endif %}
+    {% if gift.status != "bought" %}<span class="status status-{{ gift.status }}">{{ gift.status|capitalize }}</span>{% endif %}
+    <span class="title">{% if gift.title %}{{ gift.title }}{% else %}<em class="needs">Needs details</em>{% endif %}</span>
+    <span class="muted">{{ gift.recipients|map(attribute="name")|join(", ") }}{% if gift.cost_cents is not none %} · {{ gift.cost_cents|price }}{% endif %}</span>
+  </a>
+{%- endmacro %}

@@ -1,0 +1,15 @@
+# Secrets and this machine's own settings
+.env
+compose.override.yaml
+
+# Data
+/data/
+/backups/
+
+# Local dev
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Personal files kept next to the code
+/import/

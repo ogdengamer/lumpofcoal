@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+  <form class="sign-in" method="post" action="/setup">
+    <h1>Welcome to Lump of Coal</h1>
+    <p class="muted">Track gifts you've bought ahead, and what's left in the budget. First,
+      create your login. You'll add everyone else next.</p>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <label class="field">Your name
+      <input name="name" value="{{ form.name or '' }}" autocomplete="given-name" required autofocus>
+    </label>
+    <label class="field">Email
+      <input name="email" type="email" value="{{ form.email or '' }}" autocomplete="username" required>
+    </label>
+    <label class="field">Password
+      <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <label class="field">Again
+      <input name="again" type="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <button type="submit" class="save">Create my login</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "settings_base.html" %}
+{% macro basis_select(selected="per_member") -%}
+  <select name="basis" aria-label="Group or each" data-basis>
+    <option value="group_total" {% if selected == "group_total" %}selected{% endif %}>for the group</option>
+    <option value="per_member" {% if selected == "per_member" %}selected{% endif %}>each</option>
+  </select>
+{%- endmacro %}
+{% block settings %}
+  <p class="muted intro">
+    Budgets repeat every year until you change them. When more than one applies, the most
+    specific wins: a group budget, then a person's, then their relation's.
+    Budgets for you, or for groups you're in, are hidden from you.
+  </p>
+  {% for t in occasion_types %}
+    <section class="settings-section">
+      <h2>{{ t.name }}</h2>
+      {% for rule in rules_by_type[t.id] %}
+        <form class="settings-row rule-row" method="post" action="/settings/budgets/{{ rule.id }}" data-autosave>
+          <span class="row-label">
+            {{ label(rule) }}
+            <span class="muted small-text">{% if rule.relation_id %}relation{% elif rule.person_id %}person{% else %}group{% endif %}</span>
+          </span>
+          <span class="price">
+            <span class="price-sign" aria-hidden="true">$</span>
+            <input name="amount" inputmode="decimal" autocomplete="off" value="{{ price(rule.amount_cents) }}"
+                   aria-label="{{ t.name }} budget for {{ label(rule) }}">
+          </span>
+          {% if rule.group_id %}{{ basis_select(rule.basis) }}{% else %}<span class="muted basis-text">each</span>{% endif %}
+          <span class="row-actions">
+          <noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span>
+          <button type="submit" class="link" formaction="/settings/budgets/{{ rule.id }}/delete"
+                  data-confirm="Delete the {{ t.name }} budget for {{ label(rule) }}?">Delete</button>
+          </span>
+        </form>
+      {% else %}
+        <p class="muted">No {{ t.name }} budgets yet.</p>
+      {% endfor %}
+      <form class="settings-row rule-row add-row" method="post" action="/settings/budgets" data-rule-form>
+        <input type="hidden" name="occasion_type_id" value="{{ t.id }}">
+        <select name="target" aria-label="Who the {{ t.name }} budget is for" required data-target>
+          <option value="">Add a budget for…</option>
+          <optgroup label="Relations">
+            {% for r in relations %}<option value="relation:{{ r.id }}">{{ r.name }}</option>{% endfor %}
+          </optgroup>
+          <optgroup label="People">
+            {% for p in target_people %}<option value="person:{{ p.id }}">{{ p.name }}</option>{% endfor %}
+          </optgroup>
+          {% if t.date_rule != "birthday" %}
+            <optgroup label="Groups">
+              {% for g in target_groups %}<option value="group:{{ g.id }}" data-group>{{ g.name }}</option>{% endfor %}
+            </optgroup>
+          {% endif %}
+        </select>
+        <span class="price">
+          <span class="price-sign" aria-hidden="true">$</span>
+          <input name="amount" inputmode="decimal" autocomplete="off" placeholder="0"
+                 aria-label="New {{ t.name }} budget amount">
+        </span>
+        {{ basis_select("group_total") }}
+        <span class="row-actions"><button type="submit" class="btn">Add</button></span>
+      </form>
+    </section>
+  {% endfor %}
+{% endblock %}

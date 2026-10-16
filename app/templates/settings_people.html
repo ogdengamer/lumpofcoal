@@ -1,0 +1,64 @@
+{% extends "settings_base.html" %}
+{% macro person_inputs(p=None) -%}
+  <input name="name" value="{{ p.name if p else '' }}" placeholder="Name" aria-label="Name" required autocomplete="off">
+  <select name="relation_id" aria-label="Relation">
+    <option value="">No relation</option>
+    {% for r in relations %}<option value="{{ r.id }}" {% if p and p.relation_id == r.id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+  </select>
+  <span class="birthday" data-pair="optional">
+    <select name="birthday_month" aria-label="Birthday month" title="Birthday">
+      <option value="">Month</option>
+      {% for m in months %}<option value="{{ loop.index }}" {% if p and p.birthday_month == loop.index %}selected{% endif %}>{{ m[:3] }}</option>{% endfor %}
+    </select>
+    <input name="birthday_day" inputmode="numeric" placeholder="Day" aria-label="Birthday day"
+           value="{{ p.birthday_day if p and p.birthday_day else '' }}" autocomplete="off">
+  </span>
+  <input name="notes" value="{{ p.notes if p and p.notes else '' }}" placeholder="Notes" aria-label="Notes" autocomplete="off">
+{%- endmacro %}
+{% block settings %}
+  <section class="settings-section">
+    <h2>People</h2>
+    <p class="muted intro">People are never deleted, because their gifts point at them. Make someone
+      inactive to take them off the add-gift chips and filters; their gifts stay.</p>
+    <div class="person-row column-heads muted small-text" aria-hidden="true">
+      <span>Name</span><span>Relation</span><span>Birthday</span><span>Notes</span><span></span><span></span>
+    </div>
+    {% for p in people %}
+      <form class="settings-row person-row {% if not p.active %}inactive{% endif %}" method="post" action="/settings/people/{{ p.id }}" id="person-{{ p.id }}" data-autosave>
+        {{ person_inputs(p) }}
+        <span class="status-cell">
+          <label class="check">
+            <input type="checkbox" name="active" {% if p.active %}checked{% endif %}
+                   {% if p.login_email %}disabled{% endif %}> Active
+            {% if p.login_email %}<input type="hidden" name="active" value="1">{% endif %}
+          </label>
+          {% if p.id == viewer_id %}<span class="muted small-text">you</span>{% elif p.login_email %}<span class="muted small-text">uses the app</span>{% endif %}
+          {% if not p.relation_id %}<span class="needs-tag">needs a relation</span>{% endif %}
+        </span>
+        <span class="row-actions"><noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span></span>
+      </form>
+    {% endfor %}
+    <form class="settings-row person-row add-row" method="post" action="/settings/people">
+      {{ person_inputs() }}
+      <input type="hidden" name="active" value="1">
+      <span class="status-cell"></span>
+      <span class="row-actions"><button type="submit" class="btn">Add</button></span>
+    </form>
+  </section>
+
+  <section class="settings-section">
+    <h2>Relations</h2>
+    {% for r in relations %}
+      <form class="settings-row" method="post" action="/settings/relations/{{ r.id }}" data-autosave>
+        <input name="name" value="{{ r.name }}" aria-label="Relation name" required autocomplete="off">
+        <noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span>
+        <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/delete"
+                data-confirm="Delete the {{ r.name }} relation?">Delete</button>
+      </form>
+    {% endfor %}
+    <form class="settings-row add-row" method="post" action="/settings/relations">
+      <input name="name" placeholder="New relation, e.g. Cousin" aria-label="New relation" required autocomplete="off">
+      <button type="submit" class="btn">Add relation</button>
+    </form>
+  </section>
+{% endblock %}

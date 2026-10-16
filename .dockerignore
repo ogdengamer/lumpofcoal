@@ -1,0 +1,11 @@
+.git
+.github
+.venv
+.env
+compose*.yaml
+data
+backups
+tests
+tools
+*.md
+**/__pycache__

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Getting started{% endblock %}
+{% block content %}
+  <h1>Getting started</h1>
+  <p class="muted intro">{{ done_count }} of {{ steps|length }} done. Each step ticks itself off
+    once it's done.</p>
+  <ol class="checklist">
+    {% for step in steps %}
+      <li class="{{ 'done' if step.done }}">
+        <span class="tick" aria-hidden="true">{{ "✓" if step.done else loop.index }}</span>
+        <div>
+          {% if step.href %}<a href="{{ step.href }}"><strong>{{ step.title }}</strong></a>
+          {% else %}<strong>{{ step.title }}</strong>{% endif %}
+          {% if step.done %}<span class="sr-only">(done)</span>{% endif %}
+          <p class="muted">{{ step.detail }}</p>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+  <div class="welcome-actions">
+    <a class="btn" href="/">Go to gifts</a>
+    {% if not dismissed %}
+      <form method="post" action="/welcome/dismiss">
+        <button type="submit" class="link">Hide this checklist</button>
+      </form>
+    {% endif %}
+  </div>
+  {% if not dismissed %}<p class="muted small-text">Until it's hidden, this opens when the app
+    starts. You can always find it again in Settings.</p>{% endif %}
+{% endblock %}

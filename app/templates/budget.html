@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_gift_card.html" import gift_card %}
+{% block title %}Budget{% endblock %}
+{% macro money(cents) %}{% if cents is none %}—{% elif cents < 0 %}-{{ (0 - cents)|price }}{% else %}{{ cents|price }}{% endif %}{% endmacro %}
+{% macro row_link(row) -%}
+  /?{{ "recipient" if row.kind == "person" else "group" }}={{ row.id }}&occasion={{ occasion.id }}
+{%- endmacro %}
+{% block content %}
+  <div class="budget-head">
+    <h1>Budget</h1>
+    <form method="get" action="/budget" data-auto-submit>
+      <select name="occasion" aria-label="Occasion">
+        {% for o in occasions %}<option value="{{ o.id }}" {% if occasion and o.id == occasion.id %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+      </select>
+      <noscript><button type="submit">Show</button></noscript>
+    </form>
+  </div>
+
+  {% if upcoming %}
+    <section class="upcoming" aria-label="Upcoming birthdays">
+      <h2>Birthdays in the next 60 days</h2>
+      <ul>
+        {% for u in upcoming %}
+          <li>
+            <strong>{{ u.person.name }}</strong> · {{ u.when.strftime("%b %-d") }}
+            <span class="muted">· {{ money(u.spent_cents) }}{% if u.budget_cents is not none %} of {{ money(u.budget_cents) }}{% else %} spent{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if board %}
+    {% set birthday = occasion.type.date_rule == "birthday" %}
+    <p class="summary">
+      {{ money(board.spent_cents) }} spent of {{ money(board.budget_cents) }}{% if board.planned_cents %} · {{ money(board.planned_cents) }} planned{% endif %}
+      · {{ board.gift_count }} gift{{ "" if board.gift_count == 1 else "s" }}
+    </p>
+
+    <div class="btable" role="table" aria-label="{{ occasion.name }} budget">
+      <div class="brow bhead" role="row">
+        <span role="columnheader">For</span><span role="columnheader">Budget</span><span role="columnheader">Spent</span>
+        <span role="columnheader">Planned</span><span role="columnheader">Left</span><span role="columnheader">Gifts</span>
+      </div>
+      {% for row in board.rows %}
+        <a class="brow status-row-{{ row.status }}" role="row" href="{{ row_link(row) }}">
+          <span class="bname" role="cell">
+            <i class="dot dot-{{ row.status }}" aria-label="{{ {'green': 'under budget', 'amber': 'nearly at budget', 'red': 'over budget'}[row.status] }}"></i>
+            {{ row.name }}
+            <small class="muted">{% if birthday and row.birthday %}{{ row.birthday.strftime("%b %-d") }}{% else %}{{ row.detail }}{% endif %}</small>
+            {% if row.no_gifts %}<span class="flag">no gifts yet</span>{% endif %}
+          </span>
+          <span class="num" role="cell" data-label="Budget">{{ money(row.budget_cents) }}</span>
+          <span class="num" role="cell" data-label="Spent">{{ money(row.spent_cents) }}</span>
+          <span class="num" role="cell" data-label="Planned">{{ money(row.planned_cents) if row.planned_cents else "—" }}</span>
+          <span class="num left-{{ row.status }}" role="cell" data-label="Left">{{ money(row.left_cents) }}</span>
+          <span class="num" role="cell" data-label="Gifts">{{ row.gift_count }}</span>
+        </a>
+      {% else %}
+        <p class="empty">No {{ occasion.type.name }} budgets yet. <a class="link" href="/settings/budgets">Set some up</a></p>
+      {% endfor %}
+      {% if board.rows %}
+        <div class="brow btotal" role="row">
+          <span class="bname" role="cell">Total</span>
+          <span class="num" role="cell" data-label="Budget">{{ money(board.budget_cents) }}</span>
+          <span class="num" role="cell" data-label="Spent">{{ money(board.spent_cents) }}</span>
+          <span class="num" role="cell" data-label="Planned">{{ money(board.planned_cents) if board.planned_cents else "—" }}</span>
+          <span class="num" role="cell" data-label="Left">{{ money(board.left_cents) }}</span>
+          <span class="num" role="cell"></span>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if board.unbudgeted %}
+      <h2 class="bsection">No budget set</h2>
+      <div class="btable">
+        {% for row in board.unbudgeted %}
+          <a class="brow" role="row" href="{{ row_link(row) }}">
+            <span class="bname" role="cell">{{ row.name }} <small class="muted">{{ row.detail }}</small></span>
+            <span class="num" role="cell" data-label="Budget">—</span>
+            <span class="num" role="cell" data-label="Spent">{{ money(row.spent_cents) }}</span>
+            <span class="num" role="cell" data-label="Planned">{{ money(row.planned_cents) if row.planned_cents else "—" }}</span>
+            <span class="num" role="cell" data-label="Left">—</span>
+            <span class="num" role="cell" data-label="Gifts">{{ row.gift_count }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <p class="empty">No occasions yet. Add one in <a class="link" href="/settings/occasions">Settings</a>.</p>
+  {% endif %}
+
+  {% if loose_gifts %}
+    <h2 class="bsection">Gifts with no occasion</h2>
+    <p class="muted intro">These don't count toward any budget until they have an occasion.</p>
+    <ul class="cards">
+      {% for gift in loose_gifts %}<li>{{ gift_card(gift) }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

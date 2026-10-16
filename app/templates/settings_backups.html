@@ -1,0 +1,45 @@
+{% extends "settings_base.html" %}
+{% block settings %}
+  <section class="settings-section">
+    <h2>Nightly backups</h2>
+    {% if service %}
+      <p class="muted intro">Every night at {{ clock(service.next) }}, the database and all photos go
+        into one file, and backups older than {{ service.keep_days }} days are deleted.
+        Next one: {{ when(service.next) }}.</p>
+    {% else %}
+      <p class="muted intro">The backup service isn't running{% if status %} right now{% endif %}.
+        It's a separate container; see Backups in the README to turn it on.</p>
+    {% endif %}
+
+    {% if pending %}
+      <p class="toast" role="status">Backing up now. Reload this page in a minute to see it.</p>
+    {% endif %}
+
+    {% if status and status.ok %}
+      <p class="backup-state">Last backup: <strong>{{ when(status.at) }}</strong>,
+        {{ megabytes(status.size) }} <span class="backup-ok">✓ OK</span></p>
+    {% elif status %}
+      <p class="error" role="alert">The last backup failed ({{ when(status.at) }}): {{ status.error }}</p>
+      <p class="backup-state">{% if last_ok %}Last good backup: <strong>{{ when(last_ok.at) }}</strong>,
+        {{ megabytes(last_ok.size) }}{% else %}No backup has worked yet.{% endif %}</p>
+    {% else %}
+      <p class="backup-state">No backups yet.</p>
+    {% endif %}
+
+    {% if service %}
+      <form method="post" action="/settings/backups/now">
+        <button type="submit" class="btn" {% if pending or service.busy %}disabled{% endif %}>Back up now</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="settings-section">
+    <h2>Download a backup</h2>
+    <p class="muted intro">A copy of everything, to keep somewhere safe. <strong>It holds every gift,
+      including ones for you</strong>, so opening it spoils surprises. To restore it, see the README.</p>
+    <form method="post" action="/settings/backups/download">
+      <button type="submit" class="btn"
+              data-confirm="This file holds every gift, including ones for you. Download it anyway?">Download a backup</button>
+    </form>
+  </section>
+{% endblock %}

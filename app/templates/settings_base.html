@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ tabs[tab] }} · Settings{% endblock %}
+{% block content %}
+  <h1>Settings</h1>
+  <nav class="settings-tabs" aria-label="Settings">
+    {% for key, name in tabs.items() %}
+      <a href="/settings/{{ key }}" {% if key == tab %}class="on" aria-current="page"{% endif %}>{{ name }}</a>
+    {% endfor %}
+  </nav>
+  <p class="settings-more"><a href="/welcome">Getting started checklist</a></p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="toast" role="status">{{ notice }}</p>{% endif %}
+  {% block settings %}{% endblock %}
+{% endblock %}
