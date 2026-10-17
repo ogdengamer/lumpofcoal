@@ -1,7 +1,7 @@
 # Tests every push and pull request. On master, and on version tags (v1.2.3),
 # also builds the image for amd64 and arm64 and pushes it to ghcr.io:
-#   master  -> :latest
-#   v1.2.3  -> :1.2.3 and :1.2
+#   master  -> :latest  (every merged change, before it's been tried out)
+#   v1.2.3  -> :1.2.3, :1.2 and :1  (releases; compose.yaml follows :1)
 name: Test and build
 
 on:
@@ -52,6 +52,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
       - uses: docker/build-push-action@v7
         with:
           context: .

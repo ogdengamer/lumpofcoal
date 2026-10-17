@@ -3,7 +3,7 @@
 # compose.override.yaml next to this file, which Compose picks up automatically.
 services:
   lumpofcoal:
-    image: ghcr.io/ogdengamer/lumpofcoal:${LUMPOFCOAL_VERSION:-latest}
+    image: ghcr.io/ogdengamer/lumpofcoal:${LUMPOFCOAL_VERSION:-1}
     container_name: lumpofcoal
     restart: unless-stopped
     env_file: .env
@@ -15,7 +15,7 @@ services:
   # Nightly database + photos backup (see README "Backups"). Optional: it only
   # starts when .env has COMPOSE_PROFILES=backup.
   backup:
-    image: ghcr.io/ogdengamer/lumpofcoal:${LUMPOFCOAL_VERSION:-latest}
+    image: ghcr.io/ogdengamer/lumpofcoal:${LUMPOFCOAL_VERSION:-1}
     profiles: ["backup"]
     container_name: lumpofcoal-backup
     restart: unless-stopped
