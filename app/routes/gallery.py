@@ -77,12 +77,12 @@ def delete_filter(filter_id: int, session: Session = Depends(db_session)):
 
 
 @router.get("/attention", response_class=HTMLResponse)
-def needs_attention(request: Request, saved: int | None = None,
+def needs_attention(request: Request, saved: int | None = None, deleted: bool = False,
                     session: Session = Depends(db_session), repo: GiftRepo = Depends(gift_repo)):
     context = add_form_context(session, repo)
     context.update(
         gift_issues=attention.gift_issues(repo),
         person_issues=attention.person_issues(session, repo.viewer_id),
-        saved=repo.get(saved) if saved else None,
+        saved=repo.get(saved) if saved else None, deleted=deleted,
     )
     return templates.TemplateResponse(request, "attention.html", context)

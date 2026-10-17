@@ -328,6 +328,26 @@ def test_delete(clients, ids):
     assert abel.get(f"/gifts/{gid}").status_code == 404
 
 
+def test_delete_returns_to_the_list_it_came_from(clients, ids):
+    abel, _ = clients
+    gid = add(abel, recipients=f"person:{ids['Emma']}", title="Kite", status="wrapped")
+    detail = abel.get(f"/gifts/{gid}?back=status%3Dwrapped").text
+    assert 'name="back" value="status=wrapped"' in detail
+    resp = abel.post(f"/gifts/{gid}/delete", data={"back": "status=wrapped"},
+                     follow_redirects=False)
+    assert resp.headers["location"] == "/?status=wrapped&deleted=1"
+    assert "Gift deleted." in abel.get(resp.headers["location"]).text
+
+    gid = add(abel, recipients=f"person:{ids['Emma']}")
+    resp = abel.post(f"/gifts/{gid}/delete", data={"back": "attention"}, follow_redirects=False)
+    assert resp.headers["location"] == "/attention?deleted=1"
+    assert "Gift deleted." in abel.get(resp.headers["location"]).text
+    gid = add(abel, recipients=f"person:{ids['Emma']}")
+    resp = abel.post(f"/gifts/{gid}/delete",
+                     data={"back": "https://evil.example"}, follow_redirects=False)
+    assert resp.headers["location"] == "/?deleted=1"
+
+
 def test_hidden_gift_cannot_be_viewed_edited_or_deleted(clients, ids):
     abel, jules = clients
     gid = add(jules, recipients=f"person:{ids['Abel']}", title="Hidden Thing")
