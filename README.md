@@ -43,10 +43,22 @@ HTTPS. See [HTTPS](#https).
 docker compose pull && docker compose up -d
 ```
 
-The database upgrades itself on start. `latest` follows every change. To move only
-when you choose, set `LUMPOFCOAL_VERSION` in `.env` (e.g. `1.0.0`) and read the
-[release notes](https://github.com/ogdengamer/lumpofcoal/releases) before
-changing it; they say if a new `.env` setting is needed.
+That gets the newest 1.x release; the
+[release notes](https://github.com/ogdengamer/lumpofcoal/releases) say what changed
+and whether `.env` needs anything new. The database upgrades itself on start.
+Upgrades can't be undone by going back to an older version, so it's worth tapping
+**Back up now** (Settings → Backups) first.
+
+`LUMPOFCOAL_VERSION` in `.env` picks what you run:
+
+| Value | You get |
+|---|---|
+| `1` (the default) | every 1.x release |
+| `1.1.0` | exactly that release, until you change it |
+| `latest` | every change as soon as it's merged, before it's been tried out |
+
+A 2.0 would mean something needs your attention, so `1` never moves to it on its
+own.
 
 ## HTTPS
 
