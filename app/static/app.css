@@ -75,7 +75,7 @@ h1, h2, .toast, .card .title, .card .muted { overflow-wrap: anywhere; }
 .chip input:checked + span { background: var(--chip-on); color: var(--chip-on-text); }
 .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rest-chip { display: contents; }
-.chip-row[data-folded] .rest-chip { display: none; }
+.chip-row[data-folded] .rest-chip:not(.picked) { display: none; }
 .new-person { display: flex; gap: 8px; }
 .new-person input { flex: 1; min-width: 0; }
 .source-chips { margin-top: 4px; }
@@ -121,7 +121,7 @@ input, select, textarea {
 .nav { display: flex; gap: 16px; margin-left: 24px; }
 .nav a { color: var(--text); text-decoration: none; }
 .who { margin-left: auto; }
-.back { display: inline-block; color: var(--accent); text-decoration: none; margin-bottom: 8px; }
+.back { display: inline-block; color: var(--muted); text-decoration: none; margin-bottom: 8px; }
 
 /* Gallery */
 .quick-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
@@ -195,6 +195,8 @@ input, select, textarea {
 .row-label { flex: 1 1 160px; font-weight: 600; }
 .small-text { font-size: .8rem; font-weight: 400; }
 .basis-text { flex: 0 1 130px; padding-left: 4px; }
+.relation-cell { display: grid; gap: 6px; flex: 1 1 140px; min-width: 0; }
+.relation-cell > * { width: 100%; min-width: 0; }
 .birthday { display: flex; gap: 6px; flex: 1 1 170px; }
 .birthday select { flex: 1 1 90px; width: auto; min-width: 0; }
 .birthday input { flex: 0 1 70px; width: auto; min-width: 0; }

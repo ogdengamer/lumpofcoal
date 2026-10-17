@@ -31,8 +31,8 @@ NOTICES = {"saved": "Saved.", "added": "Added.", "deleted": "Deleted.",
            "removed": "Login removed. They've been signed out everywhere.",
            "password": "Password changed. Your other devices have been signed out.",
            "requested": "Backing up now. It takes a minute or so; reload this page to see it."}
-TABS = {"budgets": "Budgets", "people": "People", "groups": "Groups", "occasions": "Occasions",
-        "users": "App users", "backups": "Backups"}
+TABS = {"budgets": "Budgets", "people": "People", "relations": "Relations", "groups": "Groups",
+        "occasions": "Occasions", "users": "App users", "backups": "Backups"}
 
 
 def done(tab: str, notice: str) -> RedirectResponse:
@@ -229,7 +229,7 @@ async def update_person(request: Request, person_id: int, session: Session = Dep
 async def add_relation(request: Request, session: Session = Depends(db_session),
                        repo: GiftRepo = Depends(gift_repo)):
     form = await request.form()
-    return attempt(request, "people", session, repo.viewer_id, "added",
+    return attempt(request, "relations", session, repo.viewer_id, "added",
                    lambda: session.add(manage.new_relation(session, manage.relation_name(session, form))))
 
 
@@ -243,7 +243,7 @@ async def rename_relation(request: Request, relation_id: int,
     def action():
         relation.name = manage.relation_name(session, form, relation_id)
 
-    return attempt(request, "people", session, repo.viewer_id, "saved", action)
+    return attempt(request, "relations", session, repo.viewer_id, "saved", action)
 
 
 @router.post("/relations/{relation_id}/up")
@@ -253,7 +253,7 @@ def move_relation(request: Request, relation_id: int, session: Session = Depends
     relation = session.get(Relation, relation_id) or _404()
     manage.move_relation(session, relation, -1 if request.url.path.endswith("/up") else 1)
     session.commit()
-    return RedirectResponse(f"/settings/people#relation-{relation.id}", status_code=303)
+    return RedirectResponse(f"/settings/relations#relation-{relation.id}", status_code=303)
 
 
 @router.post("/relations/{relation_id}/delete")
@@ -267,7 +267,7 @@ def delete_relation(request: Request, relation_id: int, session: Session = Depen
                             f"deleted. Rename it instead.")
         session.delete(relation)
 
-    return attempt(request, "people", session, repo.viewer_id, "deleted", action)
+    return attempt(request, "relations", session, repo.viewer_id, "deleted", action)
 
 
 # --- groups ----------------------------------------------------------------------------------

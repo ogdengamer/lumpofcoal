@@ -144,7 +144,17 @@ def person_fields(session: Session, form, person_id: int | None = None) -> dict:
     if taken:
         raise FormError(f"There's already someone called {name}")
     relation_id = form.get("relation_id") or None
-    if relation_id and session.get(Relation, int(relation_id)) is None:
+    if relation_id == "new":  # "+ New relation…", named in the box beside it
+        label = (form.get("new_relation") or "").strip()
+        if not label:
+            raise FormError("Type the new relation's name")
+        relation = session.scalar(select(Relation).where(Relation.name == label))  # already there
+        if relation is None:
+            relation = new_relation(session, label)
+            session.add(relation)
+            session.flush()
+        relation_id = relation.id
+    elif relation_id and session.get(Relation, int(relation_id)) is None:
         raise FormError("Unknown relation")
     month, day = parse_birthday(form.get("birthday_month"), form.get("birthday_day"))
     return {
