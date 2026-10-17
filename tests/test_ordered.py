@@ -77,7 +77,7 @@ def test_ordered_counts_as_spent(session, people, christmas):
     assert row(board(session, people, christmas), "Emma").spent_cents == 5000
 
 
-def test_upgrade_keeps_gifts_and_allows_ordered(tmp_path):
+def test_upgrade_keeps_gifts_their_photos_and_allows_ordered(tmp_path):
     engine = make_engine(str(tmp_path))
     cfg = alembic_config(engine)
     command.upgrade(cfg, "0007")
@@ -86,10 +86,16 @@ def test_upgrade_keeps_gifts_and_allows_ordered(tmp_path):
         conn.execute(text("INSERT INTO gifts (title, recipient_person_id, status, created_by_id, "
                           "created_at, updated_at) VALUES ('Mug', 1, 'bought', 1, "
                           "'2026-10-01', '2026-10-01')"))
+        conn.execute(text("INSERT INTO photos (id, uploaded_by_id, created_at) "
+                          "VALUES ('p1', 1, '2026-10-01')"))
+        conn.execute(text("INSERT INTO gift_photos VALUES (1, 'p1', 0)"))
     command.upgrade(cfg, "head")
     with engine.begin() as conn:
         assert conn.execute(text("SELECT title, status, order_url FROM gifts")).one() == \
             ("Mug", "bought", None)
+        # Rebuilding the gifts table must not cascade-delete its photo links.
+        assert conn.execute(text("SELECT * FROM gift_photos")).all() == [(1, "p1", 0)]
+        assert conn.execute(text("PRAGMA foreign_keys")).scalar() == 1
         conn.execute(text("UPDATE gifts SET status = 'ordered'"))
         with pytest.raises(Exception, match="CHECK constraint"):
             conn.execute(text("UPDATE gifts SET status = 'lost'"))
