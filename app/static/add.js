@@ -88,6 +88,17 @@ document.addEventListener("DOMContentLoaded", () => {
     rule.addEventListener("change", sync);
     sync();
   });
+
+  // Gift forms: picking Ordered shows the order link field (a saved link keeps it shown).
+  document.querySelectorAll("[data-status]").forEach((status) => {
+    const field = status.form.querySelector("[data-order-link]");
+    if (!field) return;
+    const input = field.querySelector("input");
+    status.addEventListener("change", () => {
+      field.hidden = status.value !== "ordered" && !input.value.trim();
+      if (status.value === "ordered" && !input.value) input.focus();
+    });
+  });
 });
 
 function initAutosave(form) {

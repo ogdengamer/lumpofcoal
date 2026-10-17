@@ -117,12 +117,23 @@
     </div>
   </div>
   <label class="field">Status
-    <select name="status">
+    <select name="status" data-status>
       {% for s in statuses %}
-        <option value="{{ s }}" {% if s == form.status %}selected{% endif %}>{{ s|capitalize }}</option>
+        <option value="{{ s }}" {% if s == form.status %}selected{% endif %}>{{ s|status_label }}</option>
       {% endfor %}
     </select>
   </label>
+  {#- Shown for Ordered, or once a link is saved; add.js shows it when Ordered is picked. -#}
+  <div class="field" data-order-link {% if form.status != "ordered" and not form.order_url %}hidden{% endif %}>
+    <label for="{{ fid }}-order-url">Order or tracking link</label>
+    <div class="order-link">
+      <input id="{{ fid }}-order-url" name="order_url" inputmode="url" autocapitalize="off" spellcheck="false" value="{{ form.order_url or '' }}"
+             placeholder="Paste from the shop's app or email" autocomplete="off">
+      {% if form.order_url and form.order_url.startswith(("https://", "http://")) %}
+        <a class="btn" href="{{ form.order_url }}" target="_blank" rel="noopener noreferrer">Open ↗</a>
+      {% endif %}
+    </div>
+  </div>
   <label class="field">Notes <textarea name="notes" rows="2">{{ form.notes or '' }}</textarea></label>
 
   <button class="save" type="submit" data-save>{{ submit_label }}</button>

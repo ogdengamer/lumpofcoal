@@ -12,7 +12,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-STATUSES = ("idea", "bought", "wrapped", "given")
+STATUSES = ("idea", "ordered", "bought", "wrapped", "given")
+# "bought" is stored as before but shown as "Have it": in hand, as opposed to
+# ordered online and on its way. Everything but an idea counts as spent.
+STATUS_LABELS = {"idea": "Idea", "ordered": "Ordered", "bought": "Have it",
+                 "wrapped": "Wrapped", "given": "Given"}
 BASES = ("per_member", "group_total")
 # How an occasion type's date is determined each year.
 DATE_RULES = ("fixed", "easter", "birthday", "none")
@@ -152,6 +156,8 @@ class Gift(Base):
     occasion_id: Mapped[int | None] = mapped_column(ForeignKey("occasions.id"), index=True)
     cost_cents: Mapped[int | None]
     source: Mapped[str | None] = mapped_column(String(100))
+    # An online order's page or tracking link, opened from the gift's page.
+    order_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(10), default="bought")
     notes: Mapped[str | None] = mapped_column(Text)
     # Set by a one-time import from an earlier notes app (2026-10); unused since.
