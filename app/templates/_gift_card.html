@@ -6,7 +6,7 @@
     {% else %}
       <span class="no-photo" aria-hidden="true"></span>
     {% endif %}
-    {% if gift.status != "bought" %}<span class="status status-{{ gift.status }}">{{ gift.status|capitalize }}</span>{% endif %}
+    {% if gift.status != "bought" %}<span class="status status-{{ gift.status }}">{{ gift.status|status_label }}</span>{% endif %}
     <span class="title">{% if gift.title %}{{ gift.title }}{% else %}<em class="needs">Needs details</em>{% endif %}</span>
     <span class="muted">{{ gift.recipients|map(attribute="name")|join(", ") }}{% if gift.cost_cents is not none %} · {{ gift.cost_cents|price }}{% endif %}</span>
   </a>

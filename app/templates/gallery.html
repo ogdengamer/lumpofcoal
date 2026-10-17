@@ -18,6 +18,9 @@
 
   <nav class="quick-filters" aria-label="Quick filters">
     <a href="/" class="qf {% if not filters.active %}on{% endif %}">All</a>
+    {% if on_the_way or query == "status=ordered" %}
+      <a href="/?status=ordered" class="qf {% if query == "status=ordered" %}on{% endif %}">On the way ({{ on_the_way }})</a>
+    {% endif %}
     {% for sf in saved_filters %}
       <span class="qf-saved {% if sf.query == query %}on{% endif %}">
         <a href="/?{{ sf.query }}" class="qf {% if sf.query == query %}on{% endif %}">{{ sf.name }}</a>
@@ -52,7 +55,7 @@
         <label>Status
           <select name="status"><option value="">Any</option>
             <option value="not_given" {% if filters.status == "not_given" %}selected{% endif %}>Not given yet</option>
-            {% for s in options.statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
+            {% for s in options.statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s|status_label }}</option>{% endfor %}
           </select></label>
         <label>Source
           <select name="source"><option value="">Any</option>

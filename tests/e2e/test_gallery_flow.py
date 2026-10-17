@@ -227,3 +227,25 @@ def test_two_columns_even_on_a_zoomed_in_phone(page, ids):
     first, second = (page.locator(".cards .card").nth(i).bounding_box() for i in (0, 1))
     assert round(first["y"]) == round(second["y"]) and second["x"] > first["x"]
     assert_no_sideways_scroll(page)
+
+
+def test_ordered_shows_the_link_field_and_on_the_way(page, ids):
+    gid = add(page, recipients=f"person:{ids['Emma']}", title="Kite", price="20")
+    page.goto(f"/gifts/{gid}")
+    form = page.locator("main form[action='/gifts/%d']" % gid)
+    link = form.locator("[data-order-link]")
+    expect(link).to_be_hidden()
+    form.locator("[data-status]").select_option("ordered")
+    expect(link).to_be_visible()
+    expect(link.locator("input")).to_be_focused()
+    page.keyboard.type("shop.example/orders/7")
+    form.locator("[data-save]").tap()  # no https:// typed: the browser mustn't block it
+
+    expect(page.locator(".qf", has_text="On the way (1)")).to_be_visible()
+    expect(card(page, "Kite").locator(".status")).to_have_text("Ordered")
+    page.locator(".qf", has_text="On the way").tap()
+    expect(page).to_have_url(re.compile(r"status=ordered"))
+    card(page, "Kite").tap()
+    opener = page.get_by_role("link", name="Open ↗")
+    expect(opener).to_have_attribute("href", "https://shop.example/orders/7")
+    assert_no_sideways_scroll(page)

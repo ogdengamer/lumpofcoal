@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 
 from app.gifts import format_price
+from app.models import STATUS_LABELS
 
 STATIC = Path(__file__).parent / "static"
 
@@ -21,3 +22,4 @@ def static_url(name: str) -> str:
 
 
 templates.env.globals["static_url"] = static_url
+templates.env.filters["status_label"] = lambda status: STATUS_LABELS.get(status, status)

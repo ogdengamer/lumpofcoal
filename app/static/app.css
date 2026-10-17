@@ -168,6 +168,7 @@ input, select, textarea {
 .status-given { background: #15803d; }
 .status-wrapped { background: #7c3aed; }
 .status-idea { background: #b45309; }
+.status-ordered { background: #1d4ed8; }
 
 /* Gift detail */
 .existing-photos { display: grid; gap: 12px; }
@@ -303,3 +304,6 @@ a.issue:hover { background: var(--surface); }
 .move { display: flex; flex: none; }
 .move .link { min-width: 32px; min-height: 32px; font-size: 1.1rem; }
 .move .link:disabled { opacity: .3; cursor: default; }
+.order-link { display: flex; gap: 8px; align-items: center; }
+.order-link input { flex: 1; min-width: 0; }
+.order-link .btn { flex: none; text-decoration: none; color: var(--text); }

@@ -7,6 +7,7 @@ on every route here exactly as if it didn't exist.
 import json
 from dataclasses import dataclass
 from datetime import date
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
@@ -109,6 +110,7 @@ def read_form(form: FormData) -> ParsedForm:
             "source": (form.get("source") or "").strip(),
             "title": (form.get("title") or "").strip(),
             "status": form.get("status") or "bought",
+            "order_url": (form.get("order_url") or "").strip(),
             "notes": (form.get("notes") or "").strip(),
         },
         photo_id=form.get("photo_id") or None,
@@ -126,6 +128,7 @@ def gift_fields(session: Session, repo: GiftRepo, parsed: ParsedForm) -> dict:
         occasion_id = occasion.id
     if values["status"] not in STATUSES:
         raise FormError("Unknown status")
+    order_url = parse_order_url(values["order_url"])
     if parsed.photo_id and not repo.photo_visible(parsed.photo_id):
         raise FormError("That photo is no longer available; please take it again")
     return {
@@ -136,8 +139,23 @@ def gift_fields(session: Session, repo: GiftRepo, parsed: ParsedForm) -> dict:
         "title": values["title"] or None,
         "source": values["source"] or None,
         "status": values["status"],
+        "order_url": order_url,
         "notes": values["notes"] or None,
     }
+
+
+def parse_order_url(text: str) -> str | None:
+    """A web link, as pasted from a shop's app ("amazon.com/..." gets https://)."""
+    if not text:
+        return None
+    if "://" not in text:
+        text = "https://" + text
+    parts = urlsplit(text)
+    if parts.scheme not in ("http", "https") or "." not in parts.netloc or " " in text:
+        raise FormError("The order link doesn't look like a web address")
+    if len(text) > 500:
+        raise FormError("The order link is too long (500 characters at most)")
+    return text
 
 
 # --- add ---------------------------------------------------------------------------
@@ -193,6 +211,7 @@ def values_from_gift(gift: Gift) -> dict:
         "source": gift.source or "",
         "title": gift.title or "",
         "status": gift.status,
+        "order_url": gift.order_url or "",
         "notes": gift.notes or "",
     }
 
