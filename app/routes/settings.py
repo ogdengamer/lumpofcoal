@@ -41,7 +41,7 @@ def done(tab: str, notice: str) -> RedirectResponse:
 
 def people_and_relations(session: Session) -> tuple[list[Person], list[Relation]]:
     people = list(session.scalars(select(Person).order_by(Person.name)))
-    relations = list(session.scalars(select(Relation).order_by(Relation.id)))
+    relations = manage.relations(session)
     return people, relations
 
 
@@ -230,7 +230,7 @@ async def add_relation(request: Request, session: Session = Depends(db_session),
                        repo: GiftRepo = Depends(gift_repo)):
     form = await request.form()
     return attempt(request, "people", session, repo.viewer_id, "added",
-                   lambda: session.add(Relation(name=manage.relation_name(session, form))))
+                   lambda: session.add(manage.new_relation(session, manage.relation_name(session, form))))
 
 
 @router.post("/relations/{relation_id}")
@@ -244,6 +244,16 @@ async def rename_relation(request: Request, relation_id: int,
         relation.name = manage.relation_name(session, form, relation_id)
 
     return attempt(request, "people", session, repo.viewer_id, "saved", action)
+
+
+@router.post("/relations/{relation_id}/up")
+@router.post("/relations/{relation_id}/down")
+def move_relation(request: Request, relation_id: int, session: Session = Depends(db_session),
+                  repo: GiftRepo = Depends(gift_repo)):
+    relation = session.get(Relation, relation_id) or _404()
+    manage.move_relation(session, relation, -1 if request.url.path.endswith("/up") else 1)
+    session.commit()
+    return RedirectResponse(f"/settings/people#relation-{relation.id}", status_code=303)
 
 
 @router.post("/relations/{relation_id}/delete")

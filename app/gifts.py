@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import BudgetRule, Group, Occasion, OccasionType, Person
+from app.models import BudgetRule, Group, Occasion, OccasionType, Person, Relation
 from app.visibility import GiftRepo
 
 TOP_CHIPS = 6
@@ -60,11 +60,10 @@ def recipient_chips(session: Session, repo: GiftRepo) -> tuple[list[Chip], list[
     containing them, are left out: a gift to either would vanish from the
     viewer's own view.
 
-    "Closest" is relation order: the seed adds relations closest first (Partner,
-    Child, Grandchild, ...), so a lower id is closer."""
+    "Closest" is relation order, set in Settings > People (Partner, Child, ...)."""
     viewer = repo.viewer_id
-    by_closeness = (select(Person).where(Person.active)
-                    .order_by(Person.relation_id.is_(None), Person.relation_id, Person.name))
+    by_closeness = (select(Person).outerjoin(Person.relation).where(Person.active)
+                    .order_by(Relation.position.is_(None), Relation.position, Person.name))
     people = [p for p in session.scalars(by_closeness) if p.id != viewer]
     groups = [g for g in session.scalars(select(Group).where(~Group.ad_hoc).order_by(Group.name))
               if viewer not in {m.id for m in g.members}]

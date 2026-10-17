@@ -5,6 +5,7 @@ from html import unescape
 import pytest
 from sqlalchemy import select
 
+from app import manage
 from app.models import BudgetRule, Group, OccasionType, Person, Relation
 from tests.test_gallery import USERS, add, clients, ids  # noqa: F401  (fixtures)
 
@@ -329,3 +330,61 @@ def test_birthday_occasion_keeps_its_date_rule(clients):
                 date_rule="birthday").status_code == 303
     resp = post(abel, "/settings/occasions", name="Name day", date_rule="birthday")
     assert resp.status_code == 422
+
+
+def relation_order(client):
+    with client.app.state.sessionmaker() as session:
+        return [r.name for r in manage.relations(session)]
+
+
+def test_relations_can_be_reordered(clients):
+    abel, _ = clients
+    assert relation_order(abel)[:3] == ["Partner", "Child", "Grandchild"]
+    post(abel, "/settings/relations", name="Cousin")
+    assert relation_order(abel)[-1] == "Cousin"  # new ones go last
+    cousin = relation_id(abel, "Cousin")
+    resp = abel.post(f"/settings/relations/{cousin}/up", follow_redirects=False)
+    assert resp.headers["location"] == f"/settings/people#relation-{cousin}"
+    assert relation_order(abel)[-2:] == ["Cousin", "Friend"]
+    first = relation_id(abel, "Partner")
+    abel.post(f"/settings/relations/{first}/up")  # already first: nothing happens
+    abel.post(f"/settings/relations/{relation_id(abel, 'Child')}/up")
+    assert relation_order(abel)[:2] == ["Child", "Partner"]
+    page = abel.get("/settings/people").text
+    assert page.index('id="relation-' + str(relation_id(abel, "Child"))) < page.index(
+        'id="relation-' + str(first))
+    assert abel.post("/settings/relations/999/up").status_code == 404
+
+
+def test_relation_order_is_used_everywhere(clients, ids):
+    abel, _ = clients
+    for _ in range(9):  # Friend to the top
+        abel.post(f"/settings/relations/{relation_id(abel, 'Friend')}/up")
+    assert relation_order(abel)[0] == "Friend"
+    gallery = abel.get("/").text
+    filters = gallery[gallery.index('name="relation"'):]
+    assert filters.index(">Friend<") < filters.index(">Partner<")
+    with abel.app.state.sessionmaker() as session:
+        from app.gifts import recipient_chips
+        from app.visibility import GiftRepo
+        top, rest = recipient_chips(session, GiftRepo(session, ids["Abel"]))
+        names = [c.label for c in top + rest]
+    assert names.index("Nils") < names.index("Jules")  # a Friend before the Partner
+
+
+def test_upgrade_keeps_the_existing_order(tmp_path):
+    """Before positions, relations were in the order they were added."""
+    from alembic import command
+    from sqlalchemy import text
+
+    from app.db import alembic_config, make_engine
+    engine = make_engine(str(tmp_path))
+    cfg = alembic_config(engine)
+    command.upgrade(cfg, "0006")
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO relations (id, name) VALUES (1, 'Spouse'), (2, 'Kid'), "
+                          "(5, 'Cousin')"))
+    command.upgrade(cfg, "head")
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT name FROM relations ORDER BY position")).scalars().all() \
+            == ["Spouse", "Kid", "Cousin"]

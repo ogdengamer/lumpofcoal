@@ -27,7 +27,7 @@ def seed(session: Session) -> bool:
     """Populate an empty database. Returns True if it seeded."""
     if session.scalar(select(Relation.id).limit(1)) is not None:
         return False
-    session.add_all(Relation(name=name) for name in RELATIONS)
+    session.add_all(Relation(name=name, position=i) for i, name in enumerate(RELATIONS, 1))
     session.add_all(OccasionType(name=name, date_rule=rule, month=m, day=d)
                     for name, (rule, m, d) in OCCASION_TYPES.items())
     session.commit()

@@ -5,7 +5,7 @@ they're in) are hidden from them, like their gifts. Relation rules stay visible 
 both users: they're the shared "what do we usually spend" reference.
 """
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.gifts import FormError, parse_price
@@ -46,7 +46,7 @@ def rule_target_label(rule: BudgetRule) -> str:
 def rule_sort_key(rule: BudgetRule) -> tuple:
     """Relations (closest first), then people, then groups."""
     if rule.relation:
-        return (0, rule.relation_id, "")
+        return (0, rule.relation.position, "")
     if rule.person:
         return (1, 0, rule.person.name)
     return (2, 0, rule.group.name)
@@ -175,6 +175,27 @@ def group_fields(session: Session, form, group: Group | None = None) -> tuple[st
 
 
 # --- relations and occasion types ------------------------------------------------------
+
+def relations(session: Session) -> list[Relation]:
+    """Every relation, closest first: the one order used everywhere."""
+    return list(session.scalars(select(Relation).order_by(Relation.position, Relation.id)))
+
+
+def new_relation(session: Session, name: str) -> Relation:
+    last = session.scalar(select(func.max(Relation.position))) or 0
+    return Relation(name=name, position=last + 1)
+
+
+def move_relation(session: Session, relation: Relation, step: int) -> None:
+    """Swap with its neighbour above (step -1) or below (+1); no-op at either end."""
+    order = relations(session)
+    i = order.index(relation)
+    j = i + step
+    if 0 <= j < len(order):
+        order[i], order[j] = order[j], order[i]
+    for position, r in enumerate(order, 1):  # also tidies ties and gaps
+        r.position = position
+
 
 def relation_name(session: Session, form, relation_id: int | None = None) -> str:
     name = (form.get("name") or "").strip()
