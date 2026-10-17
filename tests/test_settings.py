@@ -337,6 +337,45 @@ def relation_order(client):
         return [r.name for r in manage.relations(session)]
 
 
+def test_relations_have_their_own_tab(clients):
+    abel, _ = clients
+    relations = abel.get("/settings/relations").text
+    assert "Add relation" in relations and 'aria-current="page">Relations<' in relations
+    people = abel.get("/settings/people").text
+    assert "Add relation" not in people and 'href="/settings/relations"' in people
+    assert post(abel, "/settings/relations", name="Cousin").headers["location"] == \
+        "/settings/relations?done=added"
+
+
+def test_new_relation_from_a_persons_row(clients, ids):
+    abel, _ = clients
+    fields = {"name": "Dani", "active": "1", "relation_id": "new"}
+    resp = abel.post("/settings/people", data=fields | {"new_relation": " "})
+    assert resp.status_code == 422 and "Type the new relation" in resp.text
+    post(abel, "/settings/people", **fields, new_relation="Daughter-in-law")
+    dil = relation_id(abel, "Daughter-in-law")
+    assert relation_order(abel)[-1] == "Daughter-in-law"  # new ones go last
+    # Naming one that exists picks it rather than complaining.
+    resp = abel.post(f"/settings/people/{ids['Emma']}", headers={"X-Autosave": "1"},
+                     data={"name": "Emma", "active": "1", "relation_id": "new",
+                           "new_relation": "Daughter-in-law"})
+    assert resp.json() == {"ok": True}
+    page = abel.get("/settings/people").text
+    assert page.count(f'<option value="{dil}" selected>') == 2
+
+
+def test_people_page_tags_missing_details(clients, ids):
+    abel, _ = clients
+    post(abel, "/settings/people", name="Dani", active="1", birthday_month="3", birthday_day="4")
+    page = abel.get("/settings/people").text
+    row = page[page.index(f'id="person-{ids["Emma"]}"'):][:3000].split("</form>")[0]
+    assert "needs a birthday" in row and "needs a relation" not in row
+    dani = page[page.index('value="Dani"'):].split("</form>")[0]
+    assert "needs a relation" in dani and "needs a birthday" not in dani
+    me = page[page.index(f'id="person-{ids["Abel"]}"'):].split("</form>")[0]
+    assert "needs a" not in me  # never nagged about yourself
+
+
 def test_relations_can_be_reordered(clients):
     abel, _ = clients
     assert relation_order(abel)[:3] == ["Partner", "Child", "Grandchild"]
@@ -344,13 +383,13 @@ def test_relations_can_be_reordered(clients):
     assert relation_order(abel)[-1] == "Cousin"  # new ones go last
     cousin = relation_id(abel, "Cousin")
     resp = abel.post(f"/settings/relations/{cousin}/up", follow_redirects=False)
-    assert resp.headers["location"] == f"/settings/people#relation-{cousin}"
+    assert resp.headers["location"] == f"/settings/relations#relation-{cousin}"
     assert relation_order(abel)[-2:] == ["Cousin", "Friend"]
     first = relation_id(abel, "Partner")
     abel.post(f"/settings/relations/{first}/up")  # already first: nothing happens
     abel.post(f"/settings/relations/{relation_id(abel, 'Child')}/up")
     assert relation_order(abel)[:2] == ["Child", "Partner"]
-    page = abel.get("/settings/people").text
+    page = abel.get("/settings/relations").text
     assert page.index('id="relation-' + str(relation_id(abel, "Child"))) < page.index(
         'id="relation-' + str(first))
     assert abel.post("/settings/relations/999/up").status_code == 404

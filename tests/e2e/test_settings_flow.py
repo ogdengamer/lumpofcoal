@@ -114,3 +114,20 @@ def test_budget_and_group_save_as_you_go(page):
     page.reload()
     girls = page.locator(".group-card").filter(has=page.locator('input[name=name][value="Girls"]'))
     expect(girls.locator(".chip", has_text="Elsa").locator("input")).to_be_checked()
+
+
+def test_new_relation_from_a_persons_row(page):
+    page.goto("/settings/people")
+    row = page.locator(".person-row:not(.add-row)", has=page.locator('input[value="Kira"]'))
+    box = row.locator("[data-new-relation]")
+    expect(box).to_be_hidden()
+    row.locator("[data-relation]").select_option(label="+ New relation…")
+    expect(box).to_be_focused()
+    expect(row.locator("[data-row-status]")).to_have_text("Name the new relation…")
+    box.fill("Daughter-in-law")
+    box.press("Tab")  # leaving the box saves, and the page reloads with it in every list
+    row = page.locator(".person-row:not(.add-row)", has=page.locator('input[value="Kira"]'))
+    expect(row.locator("[data-relation] option:checked")).to_have_text("Daughter-in-law")
+    expect(row.locator("[data-new-relation]")).to_be_hidden()
+    page.goto("/settings/relations")
+    expect(page.locator('.settings-row:not(.add-row) input[name="name"]').last).to_have_value("Daughter-in-law")

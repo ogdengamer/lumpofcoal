@@ -159,8 +159,8 @@ def test_gallery_lists_cards_with_totals(clients, ids):
     html = abel.get("/").text
     assert "2 gifts · $20.50" in html
     assert "Kite" in html and "Needs details" in html
-    # Both gifts lack an occasion; 4 children + 3 grandchildren lack the birthday their budget needs.
-    assert "9 things need attention" in html
+    # Both gifts lack an occasion, and everyone but Abel lacks a birthday.
+    assert "18 things need attention" in html  # 2 gifts + 16 people
 
 
 def test_gallery_filters_via_query(clients, ids):
@@ -388,16 +388,19 @@ def test_attention_lists_gifts_and_people(clients, ids):
     add(abel, recipients=f"person:{ids['Elsa']}", title="Someday", status="idea")  # vague idea: fine
     add(abel, recipients=f"person:{ids['Elsa']}", status="idea")  # idea with no title
     abel.post("/settings/people", data={"name": "Dani", "active": "1"})  # no relation
+    abel.post("/settings/people", data={"name": "Rosa", "active": "1", "relation_id": "new",
+                                        "new_relation": "Cousin", "birthday_month": "3",
+                                        "birthday_day": "4"})
     page = abel.get("/attention").text.split("<dialog")[0]  # not the add form's chips
     assert "Paints" in page and "Needs cost" in page
     assert "Kite" not in page and "Someday" not in page
     assert page.count("Needs title") == 1
     assert "Dani" in page and f'href="/settings/people#person-' in page
-    # Children have a birthday budget, and nobody has a birthday yet.
-    for child in ("Astrid", "Emma", "Elsa", "Shay"):
-        assert child in page
+    # Nobody in the made-up family has a birthday yet, budget or not.
+    for name in ("Astrid", "Emma", "Nell"):
+        assert name in page
     assert "Needs birthday" in page
-    assert "Nell" not in page  # Parent: no birthday budget, has a relation
+    assert "Rosa" not in page  # has both
 
 
 def test_attention_never_shows_your_own_gifts(clients, ids):

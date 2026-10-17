@@ -1,10 +1,15 @@
 {% extends "settings_base.html" %}
 {% macro person_inputs(p=None) -%}
   <input name="name" value="{{ p.name if p else '' }}" placeholder="Name" aria-label="Name" required autocomplete="off">
-  <select name="relation_id" aria-label="Relation">
-    <option value="">No relation</option>
-    {% for r in relations %}<option value="{{ r.id }}" {% if p and p.relation_id == r.id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
-  </select>
+  <span class="relation-cell">
+    <select name="relation_id" aria-label="Relation" data-relation>
+      <option value="">No relation</option>
+      {% for r in relations %}<option value="{{ r.id }}" {% if p and p.relation_id == r.id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+      <option value="new">+ New relation…</option>
+    </select>
+    <input name="new_relation" placeholder="e.g. Daughter-in-law" aria-label="New relation"
+           autocomplete="off" data-new-relation hidden>
+  </span>
   <span class="birthday" data-pair="optional">
     <select name="birthday_month" aria-label="Birthday month" title="Birthday">
       <option value="">Month</option>
@@ -19,7 +24,9 @@
   <section class="settings-section">
     <h2>People</h2>
     <p class="muted intro">People are never deleted, because their gifts point at them. Make someone
-      inactive to take them off the add-gift chips and filters; their gifts stay.</p>
+      inactive to take them off the add-gift chips and filters; their gifts stay. Pick
+      <b>+ New relation…</b> to add one; put them in order on the
+      <a href="/settings/relations">Relations</a> tab.</p>
     <div class="person-row column-heads muted small-text" aria-hidden="true">
       <span>Name</span><span>Relation</span><span>Birthday</span><span>Notes</span><span></span><span></span>
     </div>
@@ -33,7 +40,10 @@
             {% if p.login_email %}<input type="hidden" name="active" value="1">{% endif %}
           </label>
           {% if p.id == viewer_id %}<span class="muted small-text">you</span>{% elif p.login_email %}<span class="muted small-text">uses the app</span>{% endif %}
-          {% if not p.relation_id %}<span class="needs-tag">needs a relation</span>{% endif %}
+          {% if p.active and p.id != viewer_id %}
+            {% if not p.relation_id %}<span class="needs-tag">needs a relation</span>{% endif %}
+            {% if not p.birthday_month %}<span class="needs-tag">needs a birthday</span>{% endif %}
+          {% endif %}
         </span>
         <span class="row-actions"><noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span></span>
       </form>
@@ -43,30 +53,6 @@
       <input type="hidden" name="active" value="1">
       <span class="status-cell"></span>
       <span class="row-actions"><button type="submit" class="btn">Add</button></span>
-    </form>
-  </section>
-
-  <section class="settings-section">
-    <h2>Relations</h2>
-    <p class="muted intro">Closest first. This order is used everywhere relations are listed, and
-      decides which people the add-gift form suggests first.</p>
-    {% for r in relations %}
-      <form class="settings-row" id="relation-{{ r.id }}" method="post" action="/settings/relations/{{ r.id }}" data-autosave>
-        <span class="move">
-          <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/up"
-                  aria-label="Move {{ r.name }} up" {% if loop.first %}disabled{% endif %}>↑</button>
-          <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/down"
-                  aria-label="Move {{ r.name }} down" {% if loop.last %}disabled{% endif %}>↓</button>
-        </span>
-        <input name="name" value="{{ r.name }}" aria-label="Relation name" required autocomplete="off">
-        <noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span>
-        <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/delete"
-                data-confirm="Delete the {{ r.name }} relation?">Delete</button>
-      </form>
-    {% endfor %}
-    <form class="settings-row add-row" method="post" action="/settings/relations">
-      <input name="name" placeholder="New relation, e.g. Cousin" aria-label="New relation" required autocomplete="off">
-      <button type="submit" class="btn">Add relation</button>
     </form>
   </section>
 {% endblock %}

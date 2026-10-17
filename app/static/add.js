@@ -70,6 +70,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Settings > People: "+ New relation…" asks for its name in a box underneath.
+  document.querySelectorAll("[data-relation]").forEach((select) => {
+    const box = select.form.querySelector("[data-new-relation]");
+    select.addEventListener("change", () => {
+      box.hidden = select.value !== "new";
+      if (!box.hidden) box.focus();
+    });
+  });
+
   // Settings rows save as you go: on leaving a field or picking from a list.
   document.querySelectorAll("form[data-autosave]").forEach(initAutosave);
 
@@ -114,6 +123,10 @@ function initAutosave(form) {
 
   // A month without a day (or the reverse) isn't an error yet: wait for the other half.
   function waitingFor() {
+    const newRelation = form.querySelector("[data-new-relation]");
+    if (newRelation && !newRelation.hidden && !newRelation.value.trim()) {
+      return "Name the new relation";
+    }
     for (const pair of form.querySelectorAll("[data-pair]")) {
       if (pair.hidden) continue;
       const fields = [...pair.querySelectorAll("input, select")];
@@ -137,6 +150,12 @@ function initAutosave(form) {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { show(data.error || "Couldn't save", "error"); return; }
+      if (form.querySelector("[data-relation]")?.value === "new") {
+        // A relation was made: reload so every row's list has it.
+        location.hash = form.id;
+        location.reload();
+        return;
+      }
       show("Saved ✓", "ok");
       fade = setTimeout(() => show(""), 2500);
       const active = form.querySelector('input[type=checkbox][name="active"]');

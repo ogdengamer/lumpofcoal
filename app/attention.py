@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import BudgetRule, Gift, OccasionType, Person
+from app.models import Gift, Person
 from app.visibility import GiftRepo
 
 
@@ -35,18 +35,13 @@ def gift_issues(repo: GiftRepo) -> list[Issue]:
 
 
 def person_issues(session: Session, viewer_id: int) -> list[Issue]:
-    """Active people with no relation, or no birthday when a birthday budget covers them."""
-    birthday_rules = list(session.scalars(select(BudgetRule).join(OccasionType).where(
-        OccasionType.date_rule == "birthday")))
-    with_person_budget = {r.person_id for r in birthday_rules if r.person_id}
-    with_relation_budget = {r.relation_id for r in birthday_rules if r.relation_id}
+    """Active people (other than the viewer) with no relation or no birthday."""
     issues = []
     for person in session.scalars(select(Person).where(Person.active).order_by(Person.name)):
         if person.id == viewer_id:
             continue
         missing = [] if person.relation_id else ["relation"]
-        if person.birthday_month is None and (person.id in with_person_budget
-                                              or person.relation_id in with_relation_budget):
+        if person.birthday_month is None:
             missing.append("birthday")
         if missing:
             issues.append(Issue(person, missing))

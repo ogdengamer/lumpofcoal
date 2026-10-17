@@ -60,11 +60,11 @@
 
   <fieldset class="chips" data-chips>
     <legend>For</legend>
-    {#- Everyone shows without JS; with it, the rest fold behind "…" unless one is picked. -#}
-    {% set rest_selected = chips_rest|selectattr("key", "in", form.recipients or [])|list %}
-    <div class="chip-row" {% if chips_rest and not rest_selected %}data-fold-rest{% endif %}>
+    {#- Everyone shows without JS; with it, the rest fold behind "…". A gift's own
+        recipients stay out, after the top chips, so the section doesn't change size. -#}
+    <div class="chip-row" {% if chips_rest %}data-fold-rest{% endif %}>
       {%- for chip in chips_top %}{{ chip_input(chip) }}{% endfor -%}
-      {%- for chip in chips_rest %}<span class="rest-chip">{{ chip_input(chip) }}</span>{% endfor -%}
+      {%- for chip in chips_rest %}<span class="rest-chip {% if chip.key in (form.recipients or []) %}picked{% endif %}">{{ chip_input(chip) }}</span>{% endfor -%}
       <button type="button" class="chip-more" data-more-chips aria-label="Show everyone" hidden>…</button>
       {#- Someone not in the app yet: they're created when the gift is saved. -#}
       {% set new_picked = "new" in (form.recipients or []) and form.new_person %}

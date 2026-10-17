@@ -78,7 +78,7 @@ def test_needs_attention_empties_as_gifts_are_fixed(page, ids):
     add(page, recipients=f"person:{ids['Pop']}")  # no title, occasion or cost
     page.goto("/")
     banner = page.locator(".attention-banner")
-    expect(banner).to_contain_text("8 things need attention")  # + 7 kids' birthdays
+    expect(banner).to_contain_text("17 things need attention")  # + 16 birthdays
     banner.tap()
     issue = page.locator(".issue", has_text="Untitled gift")
     expect(issue).to_contain_text("Needs title, occasion, cost")
@@ -95,7 +95,7 @@ def test_needs_attention_empties_as_gifts_are_fixed(page, ids):
     expect(page.locator(".issue", has_text="Socks")).to_have_count(0)
     expect(page.locator(".issue", has_text="Untitled")).to_have_count(0)
     page.goto("/")
-    expect(page.locator(".attention-banner")).to_contain_text("7 things need attention")
+    expect(page.locator(".attention-banner")).to_contain_text("16 things need attention")
 
 
 def test_delete_asks_first(page, ids):
@@ -249,3 +249,17 @@ def test_ordered_shows_the_link_field_and_on_the_way(page, ids):
     opener = page.get_by_role("link", name="Open ↗")
     expect(opener).to_have_attribute("href", "https://shop.example/orders/7")
     assert_no_sideways_scroll(page)
+
+
+def test_for_chips_stay_folded_with_a_less_used_recipient(page, ids):
+    for name in ("Jules", "Astrid", "Elsa", "Emma", "Shay", "Cal"):  # the top 6, used twice
+        add(page, recipients=f"person:{ids[name]}")
+        add(page, recipients=f"person:{ids[name]}")
+    gift_id = add(page, recipients=f"person:{ids['Sage']}", title="Yo-yo")
+    page.goto(f"/gifts/{gift_id}")
+    expect(page.locator("#edit-form .rest-chip.picked")).to_have_count(1)  # Sage isn't top 6
+    expect(chip(page, "Sage", "#edit-form")).to_be_visible()
+    expect(chip(page, "Pop", "#edit-form")).to_be_hidden()  # the rest stay behind "…"
+    page.locator("#edit-form [data-more-chips]").tap()
+    expect(chip(page, "Pop", "#edit-form")).to_be_visible()
+
