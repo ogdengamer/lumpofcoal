@@ -8,7 +8,8 @@ from urllib.parse import urlencode
 from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import STATUSES, Gift, Group, Occasion, OccasionType, Person, Relation, group_members
+from app import manage
+from app.models import STATUSES, Gift, Group, Occasion, OccasionType, Person, group_members
 
 NOT_GIVEN = "not_given"
 
@@ -93,7 +94,7 @@ def filter_options(session: Session, viewer_id: int) -> dict:
     return {
         "people": [p for p in session.scalars(select(Person).order_by(Person.name))
                    if p.id != viewer_id],
-        "relations": list(session.scalars(select(Relation).order_by(Relation.name))),
+        "relations": manage.relations(session),
         "groups": list(session.scalars(select(Group).where(~Group.ad_hoc).order_by(Group.name))),
         "occasions": list(session.scalars(select(Occasion).join(OccasionType)
                                           .order_by(Occasion.year.desc(), OccasionType.name))),

@@ -48,8 +48,16 @@
 
   <section class="settings-section">
     <h2>Relations</h2>
+    <p class="muted intro">Closest first. This order is used everywhere relations are listed, and
+      decides which people the add-gift form suggests first.</p>
     {% for r in relations %}
-      <form class="settings-row" method="post" action="/settings/relations/{{ r.id }}" data-autosave>
+      <form class="settings-row" id="relation-{{ r.id }}" method="post" action="/settings/relations/{{ r.id }}" data-autosave>
+        <span class="move">
+          <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/up"
+                  aria-label="Move {{ r.name }} up" {% if loop.first %}disabled{% endif %}>↑</button>
+          <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/down"
+                  aria-label="Move {{ r.name }} down" {% if loop.last %}disabled{% endif %}>↓</button>
+        </span>
         <input name="name" value="{{ r.name }}" aria-label="Relation name" required autocomplete="off">
         <noscript><button type="submit" class="btn">Save</button></noscript><span class="row-status" data-row-status aria-live="polite"></span>
         <button type="submit" class="link" formaction="/settings/relations/{{ r.id }}/delete"

@@ -212,7 +212,8 @@ def build(session: Session, repo: GiftRepo, occasion: Occasion, today: date) -> 
         far = today + timedelta(days=400)
         budgeted.sort(key=lambda r: (r.birthday or far, r.name))
     else:
-        closeness = {p.id: (p.relation_id or 10_000) for p in session.scalars(select(Person))}
+        closeness = {p.id: p.relation.position if p.relation else 10_000
+                     for p in session.scalars(select(Person))}
         budgeted.sort(key=lambda r: (r.kind == "group", closeness.get(r.id, 0)
                                      if r.kind == "person" else 0, r.name))
     return Dashboard(occasion, budgeted, sorted(unbudgeted.values(), key=lambda r: r.name))

@@ -47,6 +47,9 @@ class Relation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(50), unique=True)
+    # Closest first (Partner, Child, ...); set in Settings > People. Every list of
+    # relations uses it, and the add-gift chips and budget page sort people by it.
+    position: Mapped[int] = mapped_column(default=0)
 
 
 class Person(Base):
