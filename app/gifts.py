@@ -48,6 +48,7 @@ class Chip:
     kind: str  # "person" or "group"
     id: int
     label: str
+    own: bool = False  # the viewer, or a group they're in: the gift will be hidden from them
 
     @property
     def key(self) -> str:
@@ -56,17 +57,21 @@ class Chip:
 
 def recipient_chips(session: Session, repo: GiftRepo) -> tuple[list[Chip], list[Chip]]:
     """(top chips, the rest). Ranked by how often, then how recently, the viewer
-    used each recipient, then by closest relation. The viewer, and groups
-    containing them, are left out: a gift to either would vanish from the
-    viewer's own view.
+    used each recipient, then by closest relation.
+
+    The rest are A to Z, people then groups, so a long list is easy to scan. The
+    viewer ("Me") and groups containing them come last and are never top chips:
+    a gift to either vanishes from the viewer's view, so the form asks first.
 
     "Closest" is relation order, set in Settings > People (Partner, Child, ...)."""
     viewer = repo.viewer_id
     by_closeness = (select(Person).outerjoin(Person.relation).where(Person.active)
                     .order_by(Relation.position.is_(None), Relation.position, Person.name))
     people = [p for p in session.scalars(by_closeness) if p.id != viewer]
-    groups = [g for g in session.scalars(select(Group).where(~Group.ad_hoc).order_by(Group.name))
-              if viewer not in {m.id for m in g.members}]
+    all_groups = session.scalars(select(Group).where(~Group.ad_hoc).order_by(Group.name))
+    groups, own_groups = [], []
+    for g in all_groups:
+        (own_groups if viewer in {m.id for m in g.members} else groups).append(g)
     chips = {("person", p.id): Chip("person", p.id, p.name) for p in people}
     chips |= {("group", g.id): Chip("group", g.id, g.name) for g in groups}
 
@@ -79,8 +84,12 @@ def recipient_chips(session: Session, repo: GiftRepo) -> tuple[list[Chip], list[
     if len(top) < TOP_CHIPS:  # pad with the closest people, e.g. for a new user
         top += [c for k, c in chips.items() if c not in top and c.kind == "person"][
             :TOP_CHIPS - len(top)]
-    rest = [c for c in chips.values() if c not in top]  # people by closeness, then groups
-    return top, rest
+    rest = sorted((c for c in chips.values() if c not in top),
+                  key=lambda c: (c.kind != "person", c.label.casefold()))
+    own = [Chip("person", viewer, "Me", own=True)]
+    own += [Chip("group", g.id, g.name, own=True)
+            for g in sorted(own_groups, key=lambda g: g.name.casefold())]
+    return top, rest + own
 
 
 def group_budget_hints(session: Session, viewer_id: int) -> dict[int, list[dict]]:
@@ -125,7 +134,7 @@ def find_or_add_person(session: Session, name: str, viewer_id: int) -> Person:
         session.add(person)
         session.flush()
     elif person.id == viewer_id:
-        raise FormError("That's you: gifts for you are hidden from you, so they can't be added here")
+        raise FormError("That's you: pick Me, at the end of the list")
     person.active = True
     return person
 

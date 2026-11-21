@@ -6,6 +6,7 @@
   <label class="chip">
     <input type="checkbox" name="recipients" value="{{ chip.key }}"
            data-kind="{{ chip.kind }}" data-id="{{ chip.id }}" data-label="{{ chip.label }}"
+           {% if chip.own %}data-own{% endif %}
            {% if chip.key in (form.recipients or []) %}checked{% endif %}>
     <span>{{ chip.label }}</span>
   </label>
@@ -60,7 +61,8 @@
 
   <fieldset class="chips" data-chips>
     <legend>For</legend>
-    {#- Everyone shows without JS; with it, the rest fold behind "…". A gift's own
+    {#- "Me" and the viewer's groups are last in the rest (add.js asks before saving).
+        Everyone shows without JS; with it, the rest fold behind "…". A gift's own
         recipients stay out, after the top chips, so the section doesn't change size. -#}
     <div class="chip-row" {% if chips_rest %}data-fold-rest{% endif %}>
       {%- for chip in chips_top %}{{ chip_input(chip) }}{% endfor -%}
@@ -110,7 +112,7 @@
   <div class="field">
     <label for="{{ fid }}-source">Bought at / trip</label>
     <input id="{{ fid }}-source" name="source" value="{{ form.source or '' }}" autocomplete="off"
-           data-source placeholder="e.g. Craft fair">
+           data-source placeholder="e.g. Craft fair" {% if fid != "edit" %}data-select-on-focus{% endif %}>
     {#- Past sources as tap-to-fill chips (not a <datalist>: Android draws that over the label). -#}
     <div class="chip-row source-chips" data-source-chips hidden>
       {%- for s in sources %}<button type="button" class="source-chip" data-value="{{ s }}">{{ s }}</button>{% endfor -%}

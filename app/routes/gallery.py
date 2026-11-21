@@ -22,7 +22,7 @@ router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
 def gallery(request: Request, saved: int | None = None, edited: bool = False,
-            deleted: bool = False,
+            deleted: bool = False, for_me: bool = False,
             session: Session = Depends(db_session), repo: GiftRepo = Depends(gift_repo)):
     # A new copy opens on the Welcome checklist, once per launch, until it's hidden.
     if (not request.query_params and not request.cookies.get(welcome.SEEN_COOKIE)
@@ -46,6 +46,7 @@ def gallery(request: Request, saved: int | None = None, edited: bool = False,
         saved=repo.get(saved) if saved else None,
         edited=edited,
         deleted=deleted,
+        for_me=for_me,
     )
     return templates.TemplateResponse(request, "gallery.html", context)
 

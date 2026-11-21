@@ -6,6 +6,8 @@
       Saved {{ saved.title or "gift" }}{% if saved.recipients %} for {{ saved.recipients|map(attribute="name")|join(", ") }}{% endif %}.
       {% if not edited %}<label class="link" for="fab-camera">Add another</label>{% endif %}
     </p>
+  {% elif for_me %}
+    <p class="toast" role="status">Saved. It's for you, so it's hidden from you now.</p>
   {% elif deleted %}
     <p class="toast" role="status">Gift deleted.</p>
   {% endif %}

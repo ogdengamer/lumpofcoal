@@ -50,13 +50,16 @@ def keys(chips):
     return [c.label for c in chips]
 
 
-def test_chips_exclude_viewer_and_their_groups(session, people, groups):
+def test_viewer_and_their_groups_come_last_marked_as_their_own(session, people, groups):
+    # A gift for yourself is allowed (the form asks first), so you're "Me", at the end.
     session.add(Group(name="Family", members=[people["Abel"], people["Emma"]]))
+    session.add(Group(name="couple", members=[people["Abel"], people["Jules"]]))
     session.commit()
     top, rest = recipient_chips(session, GiftRepo(session, people["Abel"].id))
-    labels = keys(top) + keys(rest)
-    assert "Abel" not in labels and "Family" not in labels
-    assert "Jules" in labels and "Grandkids" in labels
+    assert "Abel" not in keys(top) + keys(rest)
+    assert keys(rest)[-3:] == ["Me", "couple", "Family"]
+    assert [c.key for c in rest[-3:]][0] == f"person:{people['Abel'].id}"
+    assert [c.own for c in top + rest] == [False] * (len(top) + len(rest) - 3) + [True] * 3
 
 
 def test_chips_rank_by_frequency_then_recency(session, people, groups):
@@ -72,8 +75,18 @@ def test_chips_rank_by_frequency_then_recency(session, people, groups):
 def test_unused_chips_rank_closest_relation_first(session, people, groups):
     top, rest = recipient_chips(session, GiftRepo(session, people["Abel"].id))
     assert keys(top) == ["Jules", "Astrid", "Elsa", "Emma", "Shay", "Cal"]
-    assert keys(rest)[:2] == ["Evan", "Gina"] and keys(rest)[-3:] == [
-        "Girls", "Grandkids", "Nils & Stacy"]
+    # Behind "…": people A to Z, then groups A to Z, then Me.
+    assert keys(rest) == ["Evan", "Gina", "Hazel", "Kira", "Nell", "Nils", "Pop", "Sage",
+                          "Stacy", "Sven", "Girls", "Grandkids", "Nils & Stacy", "Me"]
+
+
+def test_chips_behind_more_ignore_capitals(session, people):
+    session.add(Person(name="anna"))
+    session.add(Person(name="Zed"))
+    session.commit()
+    _, rest = recipient_chips(session, GiftRepo(session, people["Abel"].id))
+    names = keys(rest)
+    assert names.index("anna") < names.index("Evan") and names.index("Sven") < names.index("Zed")
 
 
 def test_chip_ranking_ignores_hidden_gifts(session, people):
@@ -390,6 +403,30 @@ def test_home_page_never_lists_the_viewers_gifts(clients, ids):
     # Saved-toast lookups go through the repo too.
     hidden_id = next(g.id for g in gifts_in_db(abel) if g.title == "Hidden Thing")
     assert "Hidden Thing" not in abel.get(f"/?saved={hidden_id}").text
+
+
+def test_a_gift_for_yourself_saves_and_is_hidden_from_you(clients, ids):
+    abel, jules = clients
+    resp = abel.post("/gifts", data={"recipients": f"person:{ids['Abel']}", "title": "Bricks"},
+                     follow_redirects=False)
+    assert resp.status_code == 303 and resp.headers["location"] == "/?for_me=1"
+    home = abel.get("/?for_me=1").text
+    assert "hidden from you now" in home and "Bricks" not in home
+    assert "Bricks" in jules.get("/").text  # filed under Abel's name for Jules
+
+
+def test_me_chip_is_in_the_form_and_asks_first(clients, ids):
+    abel, _ = clients
+    html = abel.get("/gifts/new").text
+    me = re.search(r'<input[^>]*value="person:%d"[^>]*>' % ids["Abel"], html).group(0)
+    assert 'data-label="Me"' in me and "data-own" in me
+    assert html.count("data-own") == 1  # no one else is marked
+
+
+def test_typing_your_own_name_points_to_me(clients, ids):
+    abel, _ = clients
+    resp = abel.post("/gifts", data={"recipients": "new", "new_person": "abel", "title": "x"})
+    assert resp.status_code == 422 and "pick Me" in html_lib.unescape(resp.text)
 
 
 def test_group_hints_are_embedded_for_the_form(clients, ids):

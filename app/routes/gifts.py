@@ -188,7 +188,10 @@ async def create_gift(request: Request, session: Session = Depends(db_session),
         session.rollback()
         return render_new(request, session, repo, values=parsed.values, error=str(exc),
                           status_code=422, photo_id=parsed.photo_id)
-    return RedirectResponse(f"/?saved={gift.id}", status_code=303)
+    gift_id = gift.id
+    if repo.get(gift_id) is None:  # for the viewer (Me, or a group they're in)
+        return RedirectResponse("/?for_me=1", status_code=303)
+    return RedirectResponse(f"/?saved={gift_id}", status_code=303)
 
 
 # --- view / edit / delete --------------------------------------------------------------
@@ -278,8 +281,8 @@ async def update_gift(request: Request, gift_id: int, session: Session = Depends
                              values=parsed.values,
                              error=str(exc), status_code=422, photo_id=parsed.photo_id,
                              back=back)
-    if repo.get(gift_id) is None:  # e.g. re-addressed to the viewer: now hidden from them
-        return RedirectResponse("/", status_code=303)
+    if repo.get(gift_id) is None:  # re-addressed to the viewer: now hidden from them
+        return RedirectResponse("/?for_me=1", status_code=303)
     # Back to the list as it was (same filters), with a "Saved …" banner.
     if back == ATTENTION:
         return RedirectResponse(f"/attention?saved={gift_id}", status_code=303)
