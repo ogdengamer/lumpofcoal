@@ -1,3 +1,4 @@
+import asyncio
 import re
 import time
 
@@ -6,7 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
-from app.auth import JWT_HEADER, AccessVerifier
+from app.auth import JWT_HEADER, AccessMiddleware, AccessVerifier
 from app.config import ConfigError, Settings, _parse_users
 from app.main import create_app
 
@@ -109,6 +110,24 @@ def test_dev_user_bypasses_access(tmp_path):
     resp = TestClient(create_app(settings)).get("/")
     assert resp.status_code == 200
     assert signed_in_as(resp) == "Jules"
+
+
+def test_login_lookup_stays_off_the_event_loop(client, monkeypatch):
+    """A lookup waiting on a busy connection pool must not freeze every other request."""
+    on_loop = []
+    original = AccessMiddleware._by_email
+
+    def spy(session, email):
+        try:
+            asyncio.get_running_loop()
+            on_loop.append(True)
+        except RuntimeError:  # no loop in this thread: a worker thread
+            on_loop.append(False)
+        return original(session, email)
+
+    monkeypatch.setattr(AccessMiddleware, "_by_email", staticmethod(spy))
+    assert get(client, make_token()).status_code == 200
+    assert on_loop == [False]
 
 
 def test_dev_user_refused_alongside_production_access_config():

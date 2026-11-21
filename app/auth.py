@@ -21,6 +21,7 @@ from urllib.parse import quote
 
 from fastapi import Request
 from sqlalchemy import select
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, RedirectResponse, Response
 
@@ -101,6 +102,15 @@ class AccessMiddleware(BaseHTTPMiddleware):
         if password_mode and (path in SIGN_IN_PATHS or path.startswith(SIGN_IN_PREFIXES)):
             return await call_next(request)
 
+        # The lookup runs in a worker thread: a blocking database call here would
+        # stall the event loop, and with it every request that could free a connection.
+        outcome = await run_in_threadpool(self._identify, request, password_mode)
+        if isinstance(outcome, Response):
+            return outcome
+        request.state.user = outcome
+        return await call_next(request)
+
+    def _identify(self, request: Request, password_mode: bool) -> CurrentUser | Response:
         with self.sessionmaker() as session:
             if self.settings.dev_user:
                 person = self._by_email(session, self.settings.dev_user)
@@ -122,9 +132,8 @@ class AccessMiddleware(BaseHTTPMiddleware):
                     log.warning("Valid Access login for unknown user %s", email)
             if person is None:
                 return PlainTextResponse("Not authorized", status_code=403)
-            request.state.user = CurrentUser(email=person.login_email, person_name=person.name,
-                                             person_id=person.id)
-        return await call_next(request)
+            return CurrentUser(email=person.login_email, person_name=person.name,
+                               person_id=person.id)
 
     @staticmethod
     def _by_email(session, email: str) -> Person | None:
