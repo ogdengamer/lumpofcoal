@@ -12,7 +12,9 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 def make_engine(data_dir: str) -> Engine:
     Path(data_dir).mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{Path(data_dir) / 'gifts.db'}")
+    # No cap on connections: requests that wait for one hold the worker threads that
+    # would hand connections back, so a capped pool can stall for its 30s timeout.
+    engine = create_engine(f"sqlite:///{Path(data_dir) / 'gifts.db'}", max_overflow=-1)
 
     @event.listens_for(engine, "connect")
     def _sqlite_pragmas(dbapi_conn, _record):
