@@ -263,3 +263,80 @@ def test_for_chips_stay_folded_with_a_less_used_recipient(page, ids):
     page.locator("#edit-form [data-more-chips]").tap()
     expect(chip(page, "Pop", "#edit-form")).to_be_visible()
 
+
+
+# --- typing over the pre-filled trip -------------------------------------------------
+
+def selection(box):
+    return box.evaluate("el => [el.selectionStart, el.selectionEnd]")
+
+
+def test_entering_the_prefilled_trip_selects_it(page, ids):
+    add(page, recipients=f"person:{ids['Emma']}", title="x", source="Craft fair")
+    page.goto("/gifts/new")
+    box = page.locator("main [data-source]")
+    box.tap()
+    assert selection(box) == [0, len("Craft fair")]
+    page.keyboard.type("Mall")
+    expect(box).to_have_value("Mall")
+    box.tap()  # already in the box: a tap places the cursor, nothing is selected
+    start, end = selection(box)
+    assert start == end
+
+
+def test_clicking_the_prefilled_trip_selects_it_with_a_mouse(browser, server, ids):
+    p, chromium = browser
+    context = chromium.new_context(base_url=server[1])  # a computer: mouse, no touch
+    page = context.new_page()
+    add(page, recipients=f"person:{ids['Emma']}", title="x", source="Craft fair")
+    page.goto("/gifts/new")
+    box = page.locator("main [data-source]")
+    box.click()
+    assert selection(box) == [0, len("Craft fair")]
+    box.click()  # a second click places the cursor
+    start, end = selection(box)
+    assert start == end
+    context.close()
+
+
+def test_editing_a_gift_does_not_select_its_trip(page, ids):
+    gift_id = add(page, recipients=f"person:{ids['Emma']}", title="x", source="Craft fair")
+    page.goto(f"/gifts/{gift_id}")
+    box = page.locator("#edit-form [data-source]")
+    box.click()
+    start, end = selection(box)
+    assert start == end
+
+
+# --- a gift for yourself ---------------------------------------------------------------
+
+def test_a_gift_for_me_asks_then_disappears(page, ids):
+    page.goto("/gifts/new")
+    form = page.locator("main .gift-form")
+    form.locator("[data-more-chips]").tap()
+    labels = form.locator(".chip-row .chip:visible span").all_inner_texts()
+    assert labels[-1] == "Me"  # after every person and group, before "+ New"
+    chip(page, "Me", scope="main").tap()
+    form.locator("[name=title]").fill("Bricks")
+
+    asked = []
+    page.once("dialog", lambda d: (asked.append(d.message), d.dismiss()))
+    form.locator("[data-save]").tap()
+    assert "won't be able to see this gift" in asked[0]
+    expect(form.locator("[data-save]")).to_be_enabled()  # stayed, nothing saved
+    assert page.url.endswith("/gifts/new")
+
+    page.once("dialog", lambda d: d.accept())
+    form.locator("[data-save]").tap()
+    expect(page.locator(".toast")).to_contain_text("hidden from you now")
+    expect(page.locator("main")).not_to_contain_text("Bricks")
+
+
+def test_a_gift_for_someone_else_does_not_ask(page, ids):
+    page.goto("/gifts/new")
+    asked = []
+    page.on("dialog", lambda d: (asked.append(d.message), d.accept()))
+    chip(page, "Emma", scope="main").tap()
+    page.locator("main [data-save]").tap()
+    expect(page.locator(".toast")).to_contain_text("Saved gift for Emma")
+    assert asked == []

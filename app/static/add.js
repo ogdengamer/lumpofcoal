@@ -243,7 +243,19 @@ function initGiftForm(form) {
     });
   });
 
+  // A gift for yourself (Me, or a group you're in) disappears from your view on
+  // save, so ask first. Once: saving after an upload resubmits the form.
+  let forMeConfirmed = false;
   form.addEventListener("submit", (event) => {
+    const forMe = chips().some((c) => c.checked && "own" in c.dataset);
+    if (forMe && !forMeConfirmed) {
+      if (!window.confirm("You won't be able to see this gift after saving. Save anyway?")) {
+        event.preventDefault();
+        submitWhenDone = false;
+        return;
+      }
+      forMeConfirmed = true;
+    }
     if (upload) {
       event.preventDefault();
       submitWhenDone = true;
@@ -254,7 +266,7 @@ function initGiftForm(form) {
   });
 
   // Back/forward cache can restore a page mid-"Saving…"; reset the button.
-  window.addEventListener("pageshow", () => setSaving(false));
+  window.addEventListener("pageshow", () => { setSaving(false); forMeConfirmed = false; });
 
   form.querySelector("[data-close]")?.addEventListener("click", () => dialog?.close());
 
@@ -370,6 +382,19 @@ function initGiftForm(form) {
   }
 
   source.addEventListener("input", () => { typed = true; showSources(); });
+  // New gifts: the trip is pre-filled from the last gift, so entering the field
+  // selects it and typing replaces it. Later taps place the cursor as usual.
+  if ("selectOnFocus" in source.dataset) {
+    let entering = false; // the click that focused it would undo the selection
+    const selectAll = () => source.setSelectionRange(0, source.value.length);
+    source.addEventListener("focus", () => { entering = true; selectAll(); });
+    source.addEventListener("mouseup", (event) => {
+      if (entering) event.preventDefault();
+      entering = false;
+    });
+    source.addEventListener("keydown", () => { entering = false; });
+    source.addEventListener("blur", () => { entering = false; });
+  }
   sourceChips.forEach((c) => c.addEventListener("click", () => {
     source.value = c.dataset.value;
     typed = false;

@@ -364,7 +364,7 @@ def test_readdressing_a_gift_to_yourself_leaves_the_page(clients, ids):
     gid = add(abel, recipients=f"person:{ids['Emma']}")
     resp = abel.post(f"/gifts/{gid}", data={"recipients": f"person:{ids['Abel']}"},
                       follow_redirects=False)
-    assert resp.headers["location"] == "/"
+    assert resp.headers["location"] == "/?for_me=1"
 
 
 def test_cannot_attach_a_photo_from_a_hidden_gift(clients, ids):
